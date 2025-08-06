@@ -1,12 +1,11 @@
 import OpenAI from 'openai';
 
-if (!process.env.OPENAI_API_KEY) {
-  throw new Error('OPENAI_API_KEY is required in environment variables');
-}
-
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
-});
+// Initialize OpenAI only if API key is available (not during build time)
+const openai = process.env.OPENAI_API_KEY 
+  ? new OpenAI({
+      apiKey: process.env.OPENAI_API_KEY,
+    })
+  : null;
 
 export interface DesignAnalysisRequest {
   imageUrl: string;
@@ -22,6 +21,10 @@ export async function analyzeDesign({
   globalSettings,
 }: DesignAnalysisRequest): Promise<string> {
   try {
+    // Check if OpenAI is available
+    if (!openai) {
+      throw new Error('OPENAI_API_KEY is required in environment variables');
+    }
     // Use only the globalSettings as the system prompt
     const systemPrompt = globalSettings || '';
 
