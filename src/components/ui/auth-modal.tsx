@@ -48,7 +48,7 @@ export function AuthModal({ isOpen, onClose }: AuthModalProps) {
           setPassword('');
         }
       }
-    } catch (err) {
+    } catch {
       setError('An unexpected error occurred');
     } finally {
       setLoading(false);

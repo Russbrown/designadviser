@@ -46,7 +46,7 @@ export async function GET() {
       const data = await fs.readFile(SETTINGS_FILE, 'utf-8');
       const settings = JSON.parse(data);
       return NextResponse.json(settings);
-    } catch (error) {
+    } catch {
       // If file doesn't exist, return default settings
       return NextResponse.json(DEFAULT_SETTINGS);
     }

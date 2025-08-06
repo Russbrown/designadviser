@@ -175,7 +175,7 @@ export default function Home() {
     } finally {
       setIsAnalyzing(false);
     }
-  }, [currentImage, globalSettings]);
+  }, [currentImage, globalSettings, user?.id]);
 
   const handleEntrySelect = useCallback((entry: DesignEntry) => {
     console.log('Selecting entry:', {

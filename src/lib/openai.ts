@@ -36,10 +36,8 @@ export async function analyzeDesign({
     
     const userPrompt = userContext.length > 0 ? userContext.join('\n\n') : '';
 
-    const messages: Array<{
-      role: 'system' | 'user';
-      content: string | Array<{ type: string; text?: string; image_url?: { url: string; detail: string } }>;
-    }> = [];
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const messages: any[] = [];
     
     // Only add system message if globalSettings is provided
     if (systemPrompt) {
@@ -50,7 +48,8 @@ export async function analyzeDesign({
     }
     
     // Build user message content
-    const userContent: Array<{ type: string; text?: string; image_url?: { url: string; detail: string } }> = [];
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const userContent: any[] = [];
     if (userPrompt) {
       userContent.push({
         type: 'text',
