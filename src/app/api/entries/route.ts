@@ -1,25 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@supabase/supabase-js';
+import { supabase } from '@/lib/supabase';
 
-export async function GET(request: NextRequest) {
+export async function GET() {
   try {
-    // Get auth token from request headers
-    const authHeader = request.headers.get('Authorization');
-    
-    // Create authenticated Supabase client that respects RLS
-    const supabase = createClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-    );
-    
-    // If there's an auth token, set it
-    if (authHeader) {
-      await supabase.auth.setSession({
-        access_token: authHeader.replace('Bearer ', ''),
-        refresh_token: ''
-      });
-    }
-
     const { data, error } = await supabase
       .from('design_entries')
       .select(`
@@ -44,23 +27,6 @@ export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
     const { name, image_url, image_path, context, inquiries, advice, user_id } = body;
-    
-    // Get auth token from request headers
-    const authHeader = request.headers.get('Authorization');
-    
-    // Create authenticated Supabase client that respects RLS
-    const supabase = createClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-    );
-    
-    // If there's an auth token, set it
-    if (authHeader) {
-      await supabase.auth.setSession({
-        access_token: authHeader.replace('Bearer ', ''),
-        refresh_token: ''
-      });
-    }
 
     const { data, error } = await supabase
       .from('design_entries')
