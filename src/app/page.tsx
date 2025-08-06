@@ -122,12 +122,21 @@ export default function Home() {
     setError(null); // Clear any previous errors
     
     try {
+      // Get auth session for API calls
+      const { data: { session } } = await supabase.auth.getSession();
+      const authHeaders: HeadersInit = {};
+      
+      if (session?.access_token) {
+        authHeaders['Authorization'] = `Bearer ${session.access_token}`;
+      }
+      
       // First upload the image to Supabase storage
       const formData = new FormData();
       formData.append('file', currentImage);
       
       const uploadResponse = await fetch('/api/upload', {
         method: 'POST',
+        headers: authHeaders,
         body: formData,
       });
       
@@ -145,6 +154,7 @@ export default function Home() {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          ...authHeaders,
         },
         body: JSON.stringify({
           name: name || null,

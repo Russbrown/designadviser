@@ -1,8 +1,25 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { supabase } from '@/lib/supabase';
+import { createClient } from '@supabase/supabase-js';
 
 export async function POST(request: NextRequest) {
   try {
+    // Get auth token from request headers
+    const authHeader = request.headers.get('Authorization');
+    
+    // Create authenticated Supabase client that respects RLS
+    const supabase = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+    );
+    
+    // If there's an auth token, set it
+    if (authHeader) {
+      await supabase.auth.setSession({
+        access_token: authHeader.replace('Bearer ', ''),
+        refresh_token: ''
+      });
+    }
+    
     const formData = await request.formData();
     const file = formData.get('file') as File;
     
