@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { supabase } from '@/lib/supabase';
+import { supabaseAdmin } from '@/lib/supabase';
 
 export async function POST(request: NextRequest) {
   try {
@@ -20,7 +20,7 @@ export async function POST(request: NextRequest) {
     const fileName = `${timestamp}-${randomId}.${fileExtension}`;
     
     // Upload to Supabase storage
-    const { data, error } = await supabase.storage
+    const { data, error } = await supabaseAdmin.storage
       .from('design-images')
       .upload(fileName, file, {
         cacheControl: '3600',
@@ -33,7 +33,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Get the public URL for the uploaded file
-    const { data: publicUrlData } = supabase.storage
+    const { data: publicUrlData } = supabaseAdmin.storage
       .from('design-images')
       .getPublicUrl(fileName);
 

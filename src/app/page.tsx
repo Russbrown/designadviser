@@ -73,7 +73,13 @@ export default function Home() {
         const entriesResponse = await fetch('/api/entries');
         if (entriesResponse.ok) {
           const data = await entriesResponse.json();
-          console.log('Loaded entries from API:', data.map((entry: DesignEntry) => ({
+          
+          // Filter entries to only show user's own entries and anonymous entries
+          const filteredData = data.filter((entry: DesignEntry) => {
+            return entry.user_id === null || entry.user_id === user?.id;
+          });
+          
+          console.log('Loaded entries from API:', filteredData.map((entry: DesignEntry) => ({
             id: entry.id,
             versionsCount: entry.design_versions?.length || 0,
             versions: entry.design_versions?.map((v) => ({ 
@@ -81,7 +87,7 @@ export default function Home() {
               version_number: v.version_number 
             })) || []
           })));
-          setEntries(data);
+          setEntries(filteredData);
         }
 
         // Load settings
@@ -99,7 +105,7 @@ export default function Home() {
     };
 
     loadData();
-  }, [authLoading]);
+  }, [authLoading, user?.id]);
 
 
   const handleImageUpload = useCallback((file: File) => {
@@ -150,7 +156,13 @@ export default function Home() {
       });
       
       if (!entryResponse.ok) {
-        throw new Error('Failed to save entry');
+        const errorData = await entryResponse.text();
+        console.error('Entry save failed:', {
+          status: entryResponse.status,
+          statusText: entryResponse.statusText,
+          error: errorData
+        });
+        throw new Error(`Failed to save entry: ${entryResponse.status} ${entryResponse.statusText} - ${errorData}`);
       }
       
       const newEntry = await entryResponse.json();
