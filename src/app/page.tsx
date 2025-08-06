@@ -1,103 +1,447 @@
-import Image from "next/image";
+'use client';
+
+import { useState, useCallback, useEffect } from 'react';
+import { DesignEntry } from '@/types';
+import { ImageUpload } from '@/components/ui/image-upload';
+import { AdviceForm } from '@/components/ui/advice-form';
+import { Timeline } from '@/components/ui/timeline';
+import { DesignViewer } from '@/components/ui/design-viewer';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { VersionCreationDialog } from '@/components/ui/version-creation-dialog';
+import { UserMenu } from '@/components/ui/user-menu';
+import { LoadingOverlay } from '@/components/ui/loading-overlay';
+import { SettingsModal } from '@/components/ui/settings-modal';
+import { useAuth } from '@/contexts/auth-context';
+import { Settings } from 'lucide-react';
+
+// Real OpenAI-powered design analysis
+const generateAdvice = async (imageUrl: string, context: string, inquiries: string, globalSettings: string): Promise<string> => {
+  try {
+    const response = await fetch('/api/analyze', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        imageUrl,
+        context,
+        inquiries,
+        globalSettings,
+      }),
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.error || 'Failed to analyze design');
+    }
+
+    const data = await response.json();
+    return data.advice;
+  } catch (error) {
+    console.error('Error generating advice:', error);
+    
+    // Re-throw the error to be handled by the component
+    throw error;
+  }
+};
 
 export default function Home() {
-  return (
-    <div className="font-sans grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20">
-      <main className="flex flex-col gap-[32px] row-start-2 items-center sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol className="font-mono list-inside list-decimal text-sm/6 text-center sm:text-left">
-          <li className="mb-2 tracking-[-.01em]">
-            Get started by editing{" "}
-            <code className="bg-black/[.05] dark:bg-white/[.06] font-mono font-semibold px-1 py-0.5 rounded">
-              src/app/page.tsx
-            </code>
-            .
-          </li>
-          <li className="tracking-[-.01em]">
-            Save and see your changes instantly.
-          </li>
-        </ol>
+  const { user, loading: authLoading } = useAuth();
+  const [entries, setEntries] = useState<DesignEntry[]>([]);
+  const [globalSettings, setGlobalSettings] = useState('');
+  const [selectedEntry, setSelectedEntry] = useState<DesignEntry | null>(null);
+  const [currentImage, setCurrentImage] = useState<File | null>(null);
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isVersionAnalyzing, setIsVersionAnalyzing] = useState(false);
+  const [settingsModalOpen, setSettingsModalOpen] = useState(false);
+  
+  // Version creation state
+  const [versionDialogOpen, setVersionDialogOpen] = useState(false);
+  const [versionTargetEntry, setVersionTargetEntry] = useState<DesignEntry | null>(null);
 
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
-          <a
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:w-auto"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
-            />
-            Deploy now
-          </a>
-          <a
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 w-full sm:w-auto md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Read our docs
-          </a>
+  // Load entries and settings from database on mount
+  useEffect(() => {
+    const loadData = async () => {
+      // Wait for auth to be ready
+      if (authLoading) return;
+      
+      try {
+        // Load entries
+        const entriesResponse = await fetch('/api/entries');
+        if (entriesResponse.ok) {
+          const data = await entriesResponse.json();
+          console.log('Loaded entries from API:', data.map((entry: DesignEntry) => ({
+            id: entry.id,
+            versionsCount: entry.design_versions?.length || 0,
+            versions: entry.design_versions?.map((v) => ({ 
+              id: v.id, 
+              version_number: v.version_number 
+            })) || []
+          })));
+          setEntries(data);
+        }
+
+        // Load settings
+        const settingsResponse = await fetch('/api/settings');
+        if (settingsResponse.ok) {
+          const settingsData = await settingsResponse.json();
+          console.log('Loaded settings from API:', settingsData);
+          setGlobalSettings(settingsData.globalAdvice || '');
+        }
+      } catch (error) {
+        console.error('Failed to load data:', error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    loadData();
+  }, [authLoading]);
+
+
+  const handleImageUpload = useCallback((file: File) => {
+    setCurrentImage(file);
+    setError(null); // Clear any previous errors when new image is uploaded
+  }, []);
+
+  const handleAdviceSubmit = useCallback(async (name: string, context: string, inquiries: string) => {
+    if (!currentImage) return;
+
+    setIsAnalyzing(true);
+    setError(null); // Clear any previous errors
+    
+    try {
+      // First upload the image to Supabase storage
+      const formData = new FormData();
+      formData.append('file', currentImage);
+      
+      const uploadResponse = await fetch('/api/upload', {
+        method: 'POST',
+        body: formData,
+      });
+      
+      if (!uploadResponse.ok) {
+        throw new Error('Failed to upload image');
+      }
+      
+      const { url: imageUrl, path: imagePath } = await uploadResponse.json();
+      
+      // Generate advice using OpenAI API - this will throw if it fails
+      const advice = await generateAdvice(imageUrl, context, inquiries, globalSettings);
+
+      // Save entry to database
+      const entryResponse = await fetch('/api/entries', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          name: name || null,
+          image_url: imageUrl,
+          image_path: imagePath,
+          context: context || null,
+          inquiries: inquiries || null,
+          advice,
+          user_id: user?.id || null,
+        }),
+      });
+      
+      if (!entryResponse.ok) {
+        throw new Error('Failed to save entry');
+      }
+      
+      const newEntry = await entryResponse.json();
+      newEntry.design_versions = [];
+      
+      setEntries(prev => [newEntry, ...prev]);
+      setCurrentImage(null);
+      setError(null); // Clear error on success
+      
+      // Navigate to the newly created entry
+      setSelectedEntry(newEntry);
+    } catch (error) {
+      console.error('Error generating AI advice:', error);
+      
+      // Set error message to display to user
+      const errorMessage = error instanceof Error 
+        ? error.message 
+        : 'Failed to generate AI-powered design advice';
+      
+      setError(errorMessage);
+      // Don't clear the image or create an entry - let user retry
+    } finally {
+      setIsAnalyzing(false);
+    }
+  }, [currentImage, globalSettings]);
+
+  const handleEntrySelect = useCallback((entry: DesignEntry) => {
+    console.log('Selecting entry:', {
+      entryId: entry.id,
+      versionsCount: entry.design_versions?.length || 0,
+      versions: entry.design_versions?.map(v => ({ 
+        id: v.id, 
+        version_number: v.version_number 
+      })) || []
+    });
+    setSelectedEntry(entry);
+  }, []);
+
+  const handleBackToTimeline = useCallback(() => {
+    setSelectedEntry(null);
+  }, []);
+
+  const handleNewVersion = useCallback((entryId: string) => {
+    const targetEntry = entries.find(entry => entry.id === entryId);
+    if (targetEntry) {
+      setVersionTargetEntry(targetEntry);
+      setVersionDialogOpen(true);
+    }
+  }, [entries]);
+
+  const handleVersionCreated = useCallback((entryId: string, newVersion: {
+    id: string;
+    created_at: string;
+    version_number: number;
+    image_url: string | null;
+    image_path: string | null;
+    advice: string;
+    entry_id: string;
+    notes: string | null;
+  }) => {
+    // Update entries state
+    setEntries(prev => prev.map(entry => {
+      if (entry.id === entryId) {
+        return {
+          ...entry,
+          design_versions: [...(entry.design_versions || []), newVersion]
+        };
+      }
+      return entry;
+    }));
+    
+    // Also update selectedEntry if it's the same entry being viewed
+    setSelectedEntry(prev => {
+      if (prev && prev.id === entryId) {
+        return {
+          ...prev,
+          design_versions: [...(prev.design_versions || []), newVersion]
+        };
+      }
+      return prev;
+    });
+    
+    setVersionDialogOpen(false);
+    setVersionTargetEntry(null);
+  }, []);
+
+  const handleCloseVersionDialog = useCallback(() => {
+    setVersionDialogOpen(false);
+    setVersionTargetEntry(null);
+  }, []);
+
+  const handleDeleteEntry = useCallback(async (entryId: string) => {
+    try {
+      const response = await fetch(`/api/entries/${entryId}`, {
+        method: 'DELETE',
+      });
+
+      if (response.ok) {
+        // Remove entry from state
+        setEntries(prev => prev.filter(entry => entry.id !== entryId));
+        // Go back to timeline
+        setSelectedEntry(null);
+      } else {
+        console.error('Failed to delete entry');
+      }
+    } catch (error) {
+      console.error('Error deleting entry:', error);
+    }
+  }, []);
+
+  const handleNameUpdate = useCallback((entryId: string, newName: string) => {
+    // Update entries state
+    setEntries(prev => prev.map(entry => {
+      if (entry.id === entryId) {
+        return { ...entry, name: newName };
+      }
+      return entry;
+    }));
+    
+    // Update selectedEntry if it's the same entry being viewed
+    setSelectedEntry(prev => {
+      if (prev && prev.id === entryId) {
+        return { ...prev, name: newName };
+      }
+      return prev;
+    });
+  }, []);
+
+  const handleSettingsChange = useCallback((settings: string) => {
+    setGlobalSettings(settings);
+  }, []);
+
+  if (selectedEntry) {
+    return (
+      <div className="container mx-auto py-8 px-4">
+        <DesignViewer
+          entry={selectedEntry}
+          onBack={handleBackToTimeline}
+          onNewVersion={handleNewVersion}
+          onDelete={handleDeleteEntry}
+          onNameUpdate={handleNameUpdate}
+        />
+        
+        {/* Version Creation Dialog - also render in design viewer */}
+        {versionTargetEntry && (
+          <VersionCreationDialog
+            isOpen={versionDialogOpen}
+            onClose={handleCloseVersionDialog}
+            entry={versionTargetEntry}
+            onVersionCreated={handleVersionCreated}
+            globalSettings={globalSettings}
+            onLoadingChange={setIsVersionAnalyzing}
+          />
+        )}
+
+        {/* Loading overlay */}
+        <LoadingOverlay 
+          isVisible={isAnalyzing || isVersionAnalyzing}
+          title={isVersionAnalyzing ? "Creating new version..." : "Analyzing your design..."}
+          description={isVersionAnalyzing 
+            ? "Our AI is analyzing your updated design and generating fresh insights for this version."
+            : "Our AI is reviewing your design and preparing personalized feedback. This usually takes 10-20 seconds."
+          }
+        />
+      </div>
+    );
+  }
+
+  return (
+    <div className="container mx-auto py-8 px-4 space-y-8">
+      <div className="flex items-start justify-between">
+        <div className="space-y-2 flex-1">
+          <h1 className="text-3xl font-bold">Design Adviser</h1>
+          <p className="text-muted-foreground">
+            Upload your designs and get personalized advice to improve them
+          </p>
         </div>
-      </main>
-      <footer className="row-start-3 flex gap-[24px] flex-wrap items-center justify-center">
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
+        <div className="flex items-center gap-3">
+          <Button 
+            variant="outline" 
+            size="sm"
+            onClick={() => setSettingsModalOpen(true)}
+            className="text-xs"
+          >
+            <Settings className="h-4 w-4 mr-2" />
+            Configure Advice
+          </Button>
+          <UserMenu />
+        </div>
+      </div>
+
+      {!user && (
+        <Card className="border-blue-200 bg-blue-50">
+          <CardContent className="p-4">
+            <p className="text-sm text-blue-700">
+              💡 <strong>Sign in</strong> to save your design entries permanently. Without an account, your entries will only be visible during this session.
+            </p>
+          </CardContent>
+        </Card>
+      )}
+
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+        <Card className="w-full">
+          <CardHeader>
+            <CardTitle>Create Design Entry</CardTitle>
+            <CardDescription>
+              Upload your design and get personalized AI-powered feedback
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-6">
+            <ImageUpload 
+              onImageUpload={handleImageUpload}
+              currentImage={currentImage ? URL.createObjectURL(currentImage) : undefined}
+              onClear={() => setCurrentImage(null)}
+            />
+            
+            <AdviceForm 
+              onSubmit={handleAdviceSubmit}
+              isLoading={isAnalyzing}
+              hasImage={!!currentImage}
+            />
+            
+            {error && (
+              <div className="p-4 border border-destructive bg-destructive/10 rounded-lg">
+                <div className="flex items-start gap-3">
+                  <div className="flex-1">
+                    <h4 className="font-medium text-destructive mb-1">AI Analysis Failed</h4>
+                    <p className="text-sm text-muted-foreground mb-3">
+                      Unable to generate AI-powered design advice
+                    </p>
+                    <p className="text-sm text-destructive mb-3">{error}</p>
+                    <Button
+                      variant="outline"
+                      onClick={() => setError(null)}
+                      size="sm"
+                      className="border-destructive text-destructive hover:bg-destructive hover:text-destructive-foreground"
+                    >
+                      Dismiss
+                    </Button>
+                  </div>
+                </div>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        {isLoading ? (
+          <div className="w-full flex items-center justify-center py-12">
+            <div className="text-center">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
+              <p className="text-muted-foreground">Loading your design entries...</p>
+            </div>
+          </div>
+        ) : (
+          <Timeline 
+            entries={entries}
+            onEntrySelect={handleEntrySelect}
+            onNewVersion={handleNewVersion}
           />
-          Learn
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
-      </footer>
+        )}
+      </div>
+
+      {/* Version Creation Dialog */}
+      {versionTargetEntry && (
+        <VersionCreationDialog
+          isOpen={versionDialogOpen}
+          onClose={handleCloseVersionDialog}
+          entry={versionTargetEntry}
+          onVersionCreated={handleVersionCreated}
+          globalSettings={globalSettings}
+          onLoadingChange={setIsVersionAnalyzing}
+        />
+      )}
+
+      {/* Loading overlay */}
+      <LoadingOverlay 
+        isVisible={isAnalyzing || isVersionAnalyzing}
+        title={isVersionAnalyzing ? "Creating new version..." : "Analyzing your design..."}
+        description={isVersionAnalyzing 
+          ? "Our AI is analyzing your updated design and generating fresh insights for this version."
+          : "Our AI is reviewing your design and preparing personalized feedback. This usually takes 10-20 seconds."
+        }
+      />
+
+      {/* Settings Modal */}
+      <SettingsModal
+        isOpen={settingsModalOpen}
+        onClose={() => setSettingsModalOpen(false)}
+        initialSettings={globalSettings}
+        onSettingsChange={handleSettingsChange}
+      />
     </div>
   );
 }

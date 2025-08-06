@@ -1,36 +1,111 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Design Adviser
 
-## Getting Started
+A web application for uploading design images and receiving **AI-powered design advice** using OpenAI's GPT-4 Vision.
 
-First, run the development server:
+## ✨ Features
 
+- **🤖 AI-Powered Analysis**: Real design critique using OpenAI GPT-4 Vision
+- **📤 Image Upload**: Drag & drop, file browse, or copy/paste images  
+- **📝 Context & Questions**: Provide design context and specific areas for inquiry
+- **⚙️ Global Settings**: Customize system-level advice with company/brand guidelines
+- **📅 Timeline View**: See all design entries with timestamps
+- **🔄 Version Management**: Track design iterations and evolution
+- **👀 Version Navigation**: Compare different versions of the same design
+
+## 🚀 Getting Started
+
+### 1. Install Dependencies
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+npm install
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+### 2. Configure OpenAI API
+1. Get your OpenAI API key from [https://platform.openai.com/api-keys](https://platform.openai.com/api-keys)
+2. Copy `.env.example` to `.env.local`:
+   ```bash
+   cp .env.example .env.local
+   ```
+3. Add your API key to `.env.local`:
+   ```env
+   OPENAI_API_KEY=sk-your-actual-api-key-here
+   ```
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+### 3. Run the Development Server
+```bash
+npm run dev
+```
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+### 4. Open the Application
+Visit [http://localhost:3000](http://localhost:3000) in your browser
 
-## Learn More
+## 💡 How It Works
 
-To learn more about Next.js, take a look at the following resources:
+The app uses **OpenAI's GPT-4 Vision model** to analyze your uploaded designs and provide professional feedback on:
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+- **Visual Hierarchy & Layout**
+- **Color & Typography** 
+- **User Experience**
+- **Accessibility Considerations**
+- **Brand Alignment**
+- **Specific Recommendations**
+- **Actionable Next Steps**
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## 🎯 Usage
 
-## Deploy on Vercel
+1. **Configure Settings** (optional): Set up global brand guidelines and preferences
+2. **Upload Design**: Use drag/drop, file picker, or paste from clipboard
+3. **Add Context**: Describe your design's purpose and target audience  
+4. **Ask Questions**: Specify what aspects you want feedback on
+5. **Get AI Analysis**: Receive detailed, professional design critique
+6. **Track Progress**: View your design timeline and create new versions
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+## 🛠 Technology Stack
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+- **Next.js 15** with App Router
+- **TypeScript** for type safety
+- **Tailwind CSS** for styling
+- **shadcn/ui** components
+- **OpenAI GPT-4 Vision** for AI analysis
+- **Radix UI** primitives
+- **Lucide React** icons
+
+## 📁 Project Structure
+
+```
+src/
+├── app/                 # Next.js app directory
+│   ├── api/analyze/    # OpenAI API integration
+│   ├── globals.css     # Global styles
+│   ├── layout.tsx      # Root layout
+│   └── page.tsx        # Main application
+├── components/ui/       # Reusable UI components  
+├── lib/                # Utility functions & OpenAI client
+└── types/              # TypeScript type definitions
+```
+
+## 🔧 Environment Variables
+
+Create a `.env.local` file with:
+
+```env
+# Required: Your OpenAI API key
+OPENAI_API_KEY=sk-your-api-key-here
+
+# Optional: Customize the model (default: gpt-4o)
+OPENAI_MODEL=gpt-4o
+```
+
+## ⚠️ Important Notes
+
+- **API Costs**: Each design analysis uses OpenAI's API and incurs costs
+- **Image Privacy**: Images are sent to OpenAI for analysis
+- **Rate Limits**: Respect OpenAI's API rate limits
+- **Fallback**: App works without API key for design organization
+
+## 🚀 Deployment
+
+The app can be deployed to Vercel, Netlify, or any platform supporting Next.js. Remember to set your environment variables in the deployment platform.
+
+## 📄 License
+
+MIT License - Feel free to use this project as a starting point for your own design tools!
