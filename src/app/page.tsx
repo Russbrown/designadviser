@@ -13,6 +13,7 @@ import { UserMenu } from '@/components/ui/user-menu';
 import { LoadingOverlay } from '@/components/ui/loading-overlay';
 import { SettingsModal } from '@/components/ui/settings-modal';
 import { useAuth } from '@/contexts/auth-context';
+import { supabase } from '@/lib/supabase';
 import { Settings } from 'lucide-react';
 
 // Real OpenAI-powered design analysis
@@ -69,8 +70,15 @@ export default function Home() {
       if (authLoading) return;
       
       try {
-        // Load entries
-        const entriesResponse = await fetch('/api/entries');
+        // Load entries with authentication context
+        const { data: { session } } = await supabase.auth.getSession();
+        const headers: HeadersInit = {};
+        
+        if (session?.access_token) {
+          headers['Authorization'] = `Bearer ${session.access_token}`;
+        }
+        
+        const entriesResponse = await fetch('/api/entries', { headers });
         if (entriesResponse.ok) {
           const data = await entriesResponse.json();
           console.log('Loaded entries from API:', data.map((entry: DesignEntry) => ({
