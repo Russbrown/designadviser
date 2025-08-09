@@ -39,16 +39,16 @@ export async function GET(request: NextRequest) {
     // Get user settings from database
     const { data: userSettings, error } = await supabaseAdmin
       .from('user_settings')
-      .select('global_advice, updated_at')
+      .select('*') // Select all columns to see what's available
       .eq('user_id', userId)
       .single();
 
     if (error) {
+      console.error('Database error getting settings:', error);
       // If no settings found, return default settings
       if (error.code === 'PGRST116') {
         return NextResponse.json(DEFAULT_SETTINGS);
       }
-      console.error('Database error:', error);
       return NextResponse.json(DEFAULT_SETTINGS);
     }
 
@@ -67,6 +67,8 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const { globalAdvice, user_id } = body;
 
+    console.log('Settings API received:', { globalAdvice: globalAdvice?.length, user_id }); // Debug log
+
     if (typeof globalAdvice !== 'string') {
       return NextResponse.json(
         { error: 'Invalid settings format' },
@@ -76,11 +78,21 @@ export async function POST(request: NextRequest) {
 
     // If no user_id provided, reject the request
     if (!user_id) {
+      console.log('No user_id provided in request'); // Debug log
       return NextResponse.json(
         { error: 'Authentication required to save settings' },
         { status: 401 }
       );
     }
+
+    // First, try to see if the record exists
+    const { data: existingSettings } = await supabaseAdmin
+      .from('user_settings')
+      .select('*')
+      .eq('user_id', user_id)
+      .single();
+
+    console.log('Existing settings for user:', existingSettings);
 
     // Use upsert to insert or update user settings
     const { data: userSettings, error } = await supabaseAdmin
@@ -93,7 +105,7 @@ export async function POST(request: NextRequest) {
       .single();
 
     if (error) {
-      console.error('Database error:', error);
+      console.error('Database error saving settings:', error);
       return NextResponse.json(
         { error: 'Failed to save settings' },
         { status: 500 }

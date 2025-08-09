@@ -44,6 +44,8 @@ export function SettingsModal({
         return;
       }
 
+      console.log('Saving settings with userId:', userId); // Debug log
+
       // Save to server
       const response = await fetch('/api/settings', {
         method: 'POST',
