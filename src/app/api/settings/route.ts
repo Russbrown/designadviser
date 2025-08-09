@@ -83,6 +83,8 @@ export async function POST(request: NextRequest) {
     }
 
 
+    console.log('Attempting to save settings for user:', user_id);
+
     // Use upsert to insert or update user settings
     const { data: userSettings, error } = await supabaseAdmin
       .from('user_settings')
@@ -93,9 +95,13 @@ export async function POST(request: NextRequest) {
       .select()
       .single();
 
+    console.log('Upsert result:', { data: userSettings, error });
+
     if (error) {
+      console.error('Database error saving settings:', error);
+      console.error('Error details:', JSON.stringify(error, null, 2));
       return NextResponse.json(
-        { error: 'Failed to save settings' },
+        { error: 'Failed to save settings', details: error.message },
         { status: 500 }
       );
     }
@@ -109,9 +115,10 @@ export async function POST(request: NextRequest) {
       }
     });
   } catch (error) {
-    console.error('Error saving settings:', error);
+    console.error('Unexpected error saving settings:', error);
+    console.error('Error stack:', error instanceof Error ? error.stack : 'No stack trace');
     return NextResponse.json(
-      { error: 'Failed to save settings' },
+      { error: 'Failed to save settings', details: error instanceof Error ? error.message : 'Unknown error' },
       { status: 500 }
     );
   }
