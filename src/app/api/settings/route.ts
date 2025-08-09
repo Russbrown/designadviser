@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase';
 
+// Fixed: Using database storage instead of file system
+
 // Default settings
 const DEFAULT_SETTINGS = {
   globalAdvice: `Company: [Your Company Name]
@@ -27,6 +29,7 @@ Additional Context:
 
 export async function GET(request: NextRequest) {
   try {
+    console.log('Settings API v2.0 - Database version'); // Version marker
     // Check for user_id in query parameters
     const url = new URL(request.url);
     const userId = url.searchParams.get('user_id');
@@ -63,6 +66,7 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
+    console.log('Settings POST API v2.0 - Database version'); // Version marker
     const body = await request.json();
     const { globalAdvice, user_id } = body;
 
