@@ -33,31 +33,42 @@ interface VersionCreationDialogProps {
   onLoadingChange?: (isLoading: boolean) => void;
 }
 
-// Advice generation using the same API as main page
-const generateAdvice = async (imageUrl: string, context: string, inquiries: string, globalSettings: string): Promise<string> => {
+// Version comparison advice generation
+const generateVersionAdvice = async (
+  newImageUrl: string, 
+  previousImageUrl: string,
+  previousAdvice: string,
+  context: string, 
+  inquiries: string, 
+  versionNotes: string,
+  globalSettings: string
+): Promise<string> => {
   try {
-    const response = await fetch('/api/analyze', {
+    const response = await fetch('/api/analyze-version', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        imageUrl,
+        newImageUrl,
+        previousImageUrl,
+        previousAdvice,
         context,
         inquiries,
+        versionNotes,
         globalSettings,
       }),
     });
 
     if (!response.ok) {
       const errorData = await response.json();
-      throw new Error(errorData.error || 'Failed to analyze design');
+      throw new Error(errorData.error || 'Failed to analyze design version');
     }
 
     const data = await response.json();
     return data.advice;
   } catch (error) {
-    console.error('Error generating advice:', error);
+    console.error('Error generating version advice:', error);
     throw error;
   }
 };
@@ -103,9 +114,28 @@ export function VersionCreationDialog({
       
       const { url: imageUrl, path: imagePath } = await uploadResponse.json();
       
-      // Generate advice for the new version using original context + notes
-      const combinedContext = `${entry.context || ''}\n\nVersion Notes: ${notes}`;
-      const advice = await generateAdvice(imageUrl, combinedContext, entry.inquiries || '', globalSettings);
+      // Generate advice comparing the new version with the previous design
+      // Get the most recent design (either the latest version or the original entry)
+      const latestVersion = entry.design_versions && entry.design_versions.length > 0 
+        ? entry.design_versions.sort((a, b) => b.version_number - a.version_number)[0]
+        : null;
+      
+      const previousImageUrl = latestVersion ? latestVersion.image_url : entry.image_url;
+      const previousAdvice = latestVersion ? latestVersion.advice : entry.advice;
+      
+      if (!previousImageUrl) {
+        throw new Error('Previous design image not found');
+      }
+      
+      const advice = await generateVersionAdvice(
+        imageUrl,
+        previousImageUrl,
+        previousAdvice || '',
+        entry.context || '',
+        entry.inquiries || '',
+        notes,
+        globalSettings
+      );
 
       // Save version to database
       const versionResponse = await fetch(`/api/entries/${entry.id}/versions`, {

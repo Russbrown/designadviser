@@ -13,48 +13,48 @@ interface MarkdownRendererProps {
 
 export function MarkdownRenderer({ content, className }: MarkdownRendererProps) {
   return (
-    <div className={cn('prose prose-sm max-w-none dark:prose-invert', className)}>
+    <div className={cn('prose prose-sm max-w-none dark:prose-invert break-words', className)}>
       <ReactMarkdown
         remarkPlugins={[remarkGfm]}
         rehypePlugins={[rehypeHighlight, rehypeRaw]}
         components={{
           // Custom heading styles
           h1: ({ children }) => (
-            <h1 className="text-xl font-bold text-foreground mb-4 mt-6 first:mt-0">
+            <h1 className="text-xl font-bold text-foreground mb-4 mt-6 first:mt-0 border-b border-border pb-2">
               {children}
             </h1>
           ),
           h2: ({ children }) => (
-            <h2 className="text-lg font-semibold text-foreground mb-3 mt-5 first:mt-0">
+            <h2 className="text-lg font-semibold text-foreground mb-4 mt-6 first:mt-0">
               {children}
             </h2>
           ),
           h3: ({ children }) => (
-            <h3 className="text-base font-medium text-foreground mb-2 mt-4 first:mt-0">
+            <h3 className="text-base font-medium text-foreground mb-3 mt-5 first:mt-0">
               {children}
             </h3>
           ),
           
           // Custom paragraph styles
           p: ({ children }) => (
-            <p className="text-sm text-muted-foreground mb-3 leading-relaxed">
+            <p className="text-sm text-muted-foreground mb-4 leading-relaxed">
               {children}
             </p>
           ),
           
           // Custom list styles
           ul: ({ children }) => (
-            <ul className="list-disc list-inside space-y-1 mb-4 text-sm text-muted-foreground">
+            <ul className="list-disc list-outside ml-6 space-y-2 mb-4 text-sm text-muted-foreground [&_ul]:mt-2 [&_ul]:mb-2">
               {children}
             </ul>
           ),
           ol: ({ children }) => (
-            <ol className="list-decimal list-inside space-y-1 mb-4 text-sm text-muted-foreground">
+            <ol className="list-decimal list-outside ml-6 space-y-2 mb-4 text-sm text-muted-foreground [&_ol]:mt-2 [&_ol]:mb-2">
               {children}
             </ol>
           ),
           li: ({ children }) => (
-            <li className="ml-0">{children}</li>
+            <li className="pl-2 leading-relaxed text-wrap">{children}</li>
           ),
           
           // Custom code styles

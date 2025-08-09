@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { supabase } from '@/lib/supabase';
+import { supabaseAdmin } from '@/lib/supabase';
 
 export async function PATCH(
   request: NextRequest,
@@ -10,7 +10,7 @@ export async function PATCH(
     const body = await request.json();
     const { name } = body;
 
-    const { data, error } = await supabase
+    const { data, error } = await supabaseAdmin
       .from('design_entries')
       .update({ name })
       .eq('id', id)

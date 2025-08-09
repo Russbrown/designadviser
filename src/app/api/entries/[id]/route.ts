@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { supabase } from '@/lib/supabase';
+import { supabaseAdmin } from '@/lib/supabase';
 
 export async function DELETE(
   request: NextRequest,
@@ -9,7 +9,7 @@ export async function DELETE(
     const { id } = await params;
     
     // Delete the entry (this will cascade delete versions due to foreign key constraint)
-    const { error } = await supabase
+    const { error } = await supabaseAdmin
       .from('design_entries')
       .delete()
       .eq('id', id);

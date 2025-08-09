@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { DesignEntry } from '@/types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -21,6 +21,7 @@ export function DesignViewer({ entry, onBack, onNewVersion, onDelete, onNameUpda
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [isEditingName, setIsEditingName] = useState(false);
   const [editedName, setEditedName] = useState(entry.name || '');
+  const [previousVersionCount, setPreviousVersionCount] = useState(0);
   
   // Combine original entry with versions for navigation
   // Original entry is always version 1, additional versions start from 2
@@ -48,6 +49,19 @@ export function DesignViewer({ entry, onBack, onNewVersion, onDelete, onNameUpda
       id: v.id 
     }))
   });
+
+  // Effect to automatically show the newest version when new versions are added
+  useEffect(() => {
+    const currentVersionCount = allVersions.length;
+    
+    // If we have more versions than before, navigate to the newest version
+    if (currentVersionCount > previousVersionCount && previousVersionCount > 0) {
+      setCurrentVersionIndex(currentVersionCount - 1);
+    }
+    
+    // Update the previous count
+    setPreviousVersionCount(currentVersionCount);
+  }, [allVersions.length, previousVersionCount]);
 
   const currentVersion = allVersions[currentVersionIndex];
   
@@ -200,7 +214,7 @@ export function DesignViewer({ entry, onBack, onNewVersion, onDelete, onNameUpda
                 </Button>
                 
                 <div className="text-center">
-                  <p className="text-sm font-medium">
+                  <p className="text-sm font-medium transition-all duration-300 ease-in-out">
                     Version {currentVersion.version_number} of {allVersions.length}
                   </p>
                   <p className="text-xs text-muted-foreground flex items-center justify-center gap-1">
@@ -242,7 +256,7 @@ export function DesignViewer({ entry, onBack, onNewVersion, onDelete, onNameUpda
         <Card>
           <CardHeader>
             <CardTitle>Design</CardTitle>
-            <CardDescription>Version {currentVersion.version_number}</CardDescription>
+            <CardDescription className="transition-all duration-300">Version {currentVersion.version_number}</CardDescription>
           </CardHeader>
           <CardContent>
             <img 

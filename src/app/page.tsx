@@ -14,6 +14,7 @@ import { LoadingOverlay } from '@/components/ui/loading-overlay';
 import { SettingsModal } from '@/components/ui/settings-modal';
 import { useAuth } from '@/contexts/auth-context';
 import { Settings } from 'lucide-react';
+import { ErrorHandler } from '@/components/error-handler';
 
 // Real OpenAI-powered design analysis
 const generateAdvice = async (imageUrl: string, context: string, inquiries: string, globalSettings: string): Promise<string> => {
@@ -113,7 +114,7 @@ export default function Home() {
     setError(null); // Clear any previous errors when new image is uploaded
   }, []);
 
-  const handleAdviceSubmit = useCallback(async (name: string, context: string, inquiries: string) => {
+  const handleAdviceSubmit = useCallback(async (designProblem: string) => {
     if (!currentImage) return;
 
     setIsAnalyzing(true);
@@ -135,8 +136,30 @@ export default function Home() {
       
       const { url: imageUrl, path: imagePath } = await uploadResponse.json();
       
+      // Generate a design name using AI
+      const nameResponse = await fetch('/api/generate-name', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          imageUrl,
+          context: '', // No separate context field anymore
+          designProblem,
+        }),
+      });
+      
+      let generatedName = 'Design Entry'; // Fallback name
+      if (nameResponse.ok) {
+        const nameData = await nameResponse.json();
+        generatedName = nameData.name || 'Design Entry';
+      }
+      
+      // Use design problem as both context and inquiries 
+      const inquiries = designProblem || '';
+      
       // Generate advice using OpenAI API - this will throw if it fails
-      const advice = await generateAdvice(imageUrl, context, inquiries, globalSettings);
+      const advice = await generateAdvice(imageUrl, '', inquiries, globalSettings);
 
       // Save entry to database
       const entryResponse = await fetch('/api/entries', {
@@ -145,11 +168,11 @@ export default function Home() {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          name: name || null,
+          name: generatedName,
           image_url: imageUrl,
           image_path: imagePath,
-          context: context || null,
-          inquiries: inquiries || null,
+          context: null, // No separate context field anymore
+          inquiries: designProblem || null,
           advice,
           user_id: user?.id || null,
         }),
@@ -263,13 +286,17 @@ export default function Home() {
       if (response.ok) {
         // Remove entry from state
         setEntries(prev => prev.filter(entry => entry.id !== entryId));
-        // Go back to timeline
-        setSelectedEntry(null);
+        // Go back to timeline if we're viewing the deleted entry
+        setSelectedEntry(prev => prev?.id === entryId ? null : prev);
+        console.log('Entry deleted successfully');
       } else {
-        console.error('Failed to delete entry');
+        const errorData = await response.json().catch(() => ({}));
+        console.error('Failed to delete entry:', errorData.error || 'Unknown error');
+        setError(`Failed to delete entry: ${errorData.error || 'Unknown error'}`);
       }
     } catch (error) {
       console.error('Error deleting entry:', error);
+      setError('Network error while deleting entry');
     }
   }, []);
 
@@ -333,12 +360,10 @@ export default function Home() {
 
   return (
     <div className="container mx-auto py-8 px-4 space-y-8">
+      <ErrorHandler />
       <div className="flex items-start justify-between">
         <div className="space-y-2 flex-1">
           <h1 className="text-3xl font-bold">Design Adviser</h1>
-          <p className="text-muted-foreground">
-            Upload your designs and get personalized advice to improve them
-          </p>
         </div>
         <div className="flex items-center gap-3">
           <Button 
@@ -421,6 +446,7 @@ export default function Home() {
             entries={entries}
             onEntrySelect={handleEntrySelect}
             onNewVersion={handleNewVersion}
+            onDeleteEntry={handleDeleteEntry}
           />
         )}
       </div>

@@ -3,15 +3,16 @@
 import { DesignEntry } from '@/types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Clock, Eye, Plus } from 'lucide-react';
+import { Clock, Eye, Plus, Trash2 } from 'lucide-react';
 
 interface TimelineProps {
   entries: DesignEntry[];
   onEntrySelect: (entry: DesignEntry) => void;
   onNewVersion: (entryId: string) => void;
+  onDeleteEntry: (entryId: string) => void;
 }
 
-export function Timeline({ entries, onEntrySelect, onNewVersion }: TimelineProps) {
+export function Timeline({ entries, onEntrySelect, onNewVersion, onDeleteEntry }: TimelineProps) {
   const formatDate = (dateString: string) => {
     return new Intl.DateTimeFormat('en-US', {
       month: 'short',
@@ -93,6 +94,15 @@ export function Timeline({ entries, onEntrySelect, onNewVersion }: TimelineProps
                       >
                         <Plus className="h-4 w-4 mr-1" />
                         Version
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => onDeleteEntry(entry.id)}
+                        className="text-destructive hover:text-destructive hover:bg-destructive/10"
+                      >
+                        <Trash2 className="h-4 w-4 mr-1" />
+                        Delete
                       </Button>
                     </div>
                   </div>

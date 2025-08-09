@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { supabase } from '@/lib/supabase';
+import { supabaseAdmin } from '@/lib/supabase';
 
 export async function GET(
   request: NextRequest,
@@ -7,7 +7,7 @@ export async function GET(
 ) {
   try {
     const { id } = await params;
-    const { data, error } = await supabase
+    const { data, error } = await supabaseAdmin
       .from('design_versions')
       .select('*')
       .eq('entry_id', id)
@@ -35,7 +35,7 @@ export async function POST(
     const { image_url, image_path, advice, notes } = body;
 
     // Get the current highest version number for this entry
-    const { data: existingVersions, error: versionError } = await supabase
+    const { data: existingVersions, error: versionError } = await supabaseAdmin
       .from('design_versions')
       .select('version_number')
       .eq('entry_id', id)
@@ -48,7 +48,7 @@ export async function POST(
       ? existingVersions[0].version_number + 1 
       : 2; // Start from version 2 since original entry is version 1
 
-    const { data, error } = await supabase
+    const { data, error } = await supabaseAdmin
       .from('design_versions')
       .insert([{
         entry_id: id,
