@@ -92,7 +92,8 @@ export default function Home() {
         }
 
         // Load settings
-        const settingsResponse = await fetch('/api/settings');
+        const settingsUrl = user?.id ? `/api/settings?user_id=${user.id}` : '/api/settings';
+        const settingsResponse = await fetch(settingsUrl);
         if (settingsResponse.ok) {
           const settingsData = await settingsResponse.json();
           console.log('Loaded settings from API:', settingsData);
@@ -479,6 +480,7 @@ export default function Home() {
         onClose={() => setSettingsModalOpen(false)}
         initialSettings={globalSettings}
         onSettingsChange={handleSettingsChange}
+        userId={user?.id}
       />
     </div>
   );

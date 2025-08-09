@@ -17,13 +17,15 @@ interface SettingsModalProps {
   onClose: () => void;
   initialSettings: string;
   onSettingsChange: (settings: string) => void;
+  userId?: string | null;
 }
 
 export function SettingsModal({ 
   isOpen, 
   onClose, 
   initialSettings, 
-  onSettingsChange 
+  onSettingsChange,
+  userId
 }: SettingsModalProps) {
   const [settings, setSettings] = useState(initialSettings);
   const [isSaving, setIsSaving] = useState(false);
@@ -36,11 +38,17 @@ export function SettingsModal({
   const handleSave = async () => {
     setIsSaving(true);
     try {
+      // Only allow saving if user is logged in
+      if (!userId) {
+        alert('You must be signed in to save settings');
+        return;
+      }
+
       // Save to server
       const response = await fetch('/api/settings', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ globalAdvice: settings }),
+        body: JSON.stringify({ globalAdvice: settings, user_id: userId }),
       });
       
       if (!response.ok) {
