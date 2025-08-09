@@ -90,11 +90,14 @@ export async function POST(request: NextRequest) {
     console.log('Attempting to save settings for user:', user_id);
 
     // Use upsert to insert or update user settings
+    // The onConflict parameter tells Supabase which column to use for conflict resolution
     const { data: userSettings, error } = await supabaseAdmin
       .from('user_settings')
       .upsert({
         user_id: user_id,
         global_advice: globalAdvice,
+      }, {
+        onConflict: 'user_id' // This tells upsert to update when user_id matches
       })
       .select()
       .single();
