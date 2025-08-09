@@ -39,3 +39,11 @@ export interface DesignVersion {
   entry_id: string;
   notes: string | null;
 }
+
+export interface UserSettings {
+  id: string;
+  created_at: string;
+  updated_at: string;
+  user_id: string;
+  global_advice: string | null;
+}

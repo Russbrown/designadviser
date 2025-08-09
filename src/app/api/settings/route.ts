@@ -1,18 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { promises as fs } from 'fs';
-import path from 'path';
-
-const SETTINGS_FILE = path.join(process.cwd(), 'data', 'settings.json');
-
-// Ensure data directory exists
-async function ensureDataDirectory() {
-  const dataDir = path.dirname(SETTINGS_FILE);
-  try {
-    await fs.access(dataDir);
-  } catch {
-    await fs.mkdir(dataDir, { recursive: true });
-  }
-}
+import { supabase } from '@/lib/supabase';
 
 // Default settings
 const DEFAULT_SETTINGS = {
@@ -38,29 +25,68 @@ Additional Context:
   lastUpdated: new Date().toISOString(),
 };
 
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
-    await ensureDataDirectory();
+    // Get the user session
+    const { data: { session }, error: sessionError } = await supabase.auth.getSession();
     
-    try {
-      const data = await fs.readFile(SETTINGS_FILE, 'utf-8');
-      const settings = JSON.parse(data);
-      return NextResponse.json(settings);
-    } catch {
-      // If file doesn't exist, return default settings
+    if (sessionError) {
+      console.error('Session error:', sessionError);
       return NextResponse.json(DEFAULT_SETTINGS);
     }
+
+    // If no user is logged in, return default settings
+    if (!session?.user?.id) {
+      return NextResponse.json(DEFAULT_SETTINGS);
+    }
+
+    // Get user settings from database
+    const { data: userSettings, error } = await supabase
+      .from('user_settings')
+      .select('global_advice, updated_at')
+      .eq('user_id', session.user.id)
+      .single();
+
+    if (error) {
+      // If no settings found (404), return default settings
+      if (error.code === 'PGRST116') {
+        return NextResponse.json(DEFAULT_SETTINGS);
+      }
+      console.error('Database error:', error);
+      return NextResponse.json(DEFAULT_SETTINGS);
+    }
+
+    return NextResponse.json({
+      globalAdvice: userSettings.global_advice || DEFAULT_SETTINGS.globalAdvice,
+      lastUpdated: userSettings.updated_at,
+    });
   } catch (error) {
     console.error('Error reading settings:', error);
-    return NextResponse.json(
-      { error: 'Failed to load settings' },
-      { status: 500 }
-    );
+    return NextResponse.json(DEFAULT_SETTINGS);
   }
 }
 
 export async function POST(request: NextRequest) {
   try {
+    // Get the user session
+    const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+    
+    if (sessionError) {
+      console.error('Session error:', sessionError);
+      return NextResponse.json(
+        { error: 'Authentication failed' },
+        { status: 401 }
+      );
+    }
+
+    // Require authentication for saving settings
+    if (!session?.user?.id) {
+      return NextResponse.json(
+        { error: 'Authentication required to save settings' },
+        { status: 401 }
+      );
+    }
+
     const body = await request.json();
     const { globalAdvice } = body;
 
@@ -71,19 +97,31 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    await ensureDataDirectory();
+    // Use upsert to insert or update user settings
+    const { data: userSettings, error } = await supabase
+      .from('user_settings')
+      .upsert({
+        user_id: session.user.id,
+        global_advice: globalAdvice,
+      })
+      .select()
+      .single();
 
-    const settings = {
-      globalAdvice,
-      lastUpdated: new Date().toISOString(),
-    };
-
-    await fs.writeFile(SETTINGS_FILE, JSON.stringify(settings, null, 2), 'utf-8');
+    if (error) {
+      console.error('Database error:', error);
+      return NextResponse.json(
+        { error: 'Failed to save settings' },
+        { status: 500 }
+      );
+    }
 
     return NextResponse.json({ 
       success: true, 
       message: 'Settings saved successfully',
-      settings 
+      settings: {
+        globalAdvice: userSettings.global_advice,
+        lastUpdated: userSettings.updated_at,
+      }
     });
   } catch (error) {
     console.error('Error saving settings:', error);
