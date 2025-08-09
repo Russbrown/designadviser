@@ -370,10 +370,7 @@ export default function Home() {
           <Button 
             variant="outline" 
             size="sm"
-            onClick={() => {
-              console.log('Opening settings modal, user:', user); // Debug log
-              setSettingsModalOpen(true);
-            }}
+            onClick={() => setSettingsModalOpen(true)}
             className="text-xs"
           >
             <Settings className="h-4 w-4 mr-2" />
