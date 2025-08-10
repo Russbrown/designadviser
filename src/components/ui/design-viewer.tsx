@@ -323,9 +323,6 @@ export function DesignViewer({ entry, onBack, onNewVersion, onDelete, onNameUpda
         <Card>
           <CardHeader>
             <CardTitle>Design Advice</CardTitle>
-            <CardDescription>
-              Generated on {formatDate(currentVersion.created_at)}
-            </CardDescription>
           </CardHeader>
           <CardContent>
             {currentVersion.advice ? (
