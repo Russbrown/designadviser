@@ -170,8 +170,54 @@ export function DesignViewer({ entry, onBack, onNewVersion, onDelete, onNameUpda
                 </div>
                 
                 <div className="flex items-center gap-2">
+                  {/* Version navigation - show if multiple versions */}
+                  {allVersions.length > 1 && (
+                    <div className="flex items-center gap-3 mr-4">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={goToPrevious}
+                        disabled={currentVersionIndex === 0}
+                      >
+                        <ChevronLeft className="h-4 w-4" />
+                      </Button>
+                      
+                      <div className="text-center">
+                        <p className="text-sm font-medium transition-all duration-300 ease-in-out">
+                          Version {currentVersion.version_number} of {allVersions.length}
+                        </p>
+                        <p className="text-xs text-muted-foreground flex items-center justify-center gap-1">
+                          <Clock className="h-3 w-3" />
+                          {formatDate(currentVersion.created_at)}
+                        </p>
+                      </div>
+                      
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={goToNext}
+                        disabled={currentVersionIndex === allVersions.length - 1}
+                      >
+                        <ChevronRight className="h-4 w-4" />
+                      </Button>
+                      
+                      {/* Version indicators */}
+                      <div className="flex space-x-1 ml-2">
+                        {allVersions.map((_, index) => (
+                          <button
+                            key={index}
+                            className={`w-2 h-2 rounded-full ${
+                              index === currentVersionIndex ? 'bg-primary' : 'bg-muted'
+                            }`}
+                            onClick={() => setCurrentVersionIndex(index)}
+                          />
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                  
                   <Button onClick={() => onNewVersion(entry.id)}>
-                    Add New Version
+                    New Version
                   </Button>
                 </div>
               </div>
@@ -202,54 +248,6 @@ export function DesignViewer({ entry, onBack, onNewVersion, onDelete, onNameUpda
                 <p className="text-xs text-muted-foreground">
                   Press Enter to save, Escape to cancel
                 </p>
-              </div>
-            )}
-
-            {/* Version navigation - only show if multiple versions */}
-            {allVersions.length > 1 && (
-              <div className="flex items-center justify-between pt-2 border-t">
-                <div className="flex items-center space-x-4">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={goToPrevious}
-                    disabled={currentVersionIndex === 0}
-                  >
-                    <ChevronLeft className="h-4 w-4" />
-                  </Button>
-                  
-                  <div className="text-center">
-                    <p className="text-sm font-medium transition-all duration-300 ease-in-out">
-                      Version {currentVersion.version_number} of {allVersions.length}
-                    </p>
-                    <p className="text-xs text-muted-foreground flex items-center justify-center gap-1">
-                      <Clock className="h-3 w-3" />
-                      {formatDate(currentVersion.created_at)}
-                    </p>
-                  </div>
-                  
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={goToNext}
-                    disabled={currentVersionIndex === allVersions.length - 1}
-                  >
-                    <ChevronRight className="h-4 w-4" />
-                  </Button>
-                </div>
-                
-                {/* Version indicators */}
-                <div className="flex space-x-1">
-                  {allVersions.map((_, index) => (
-                    <button
-                      key={index}
-                      className={`w-2 h-2 rounded-full ${
-                        index === currentVersionIndex ? 'bg-primary' : 'bg-muted'
-                      }`}
-                      onClick={() => setCurrentVersionIndex(index)}
-                    />
-                  ))}
-                </div>
               </div>
             )}
           </div>
