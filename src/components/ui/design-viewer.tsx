@@ -147,24 +147,29 @@ export function DesignViewer({ entry, onBack, onNewVersion, onDelete, onNameUpda
                     <ArrowLeft className="h-4 w-4" />
                   </Button>
                   
-                  <div>
-                    <h2 className="text-xl font-semibold">
-                      {entry.name || 'Untitled Design'}
-                    </h2>
-                    <p className="text-sm text-muted-foreground">
-                      Created {formatDate(entry.created_at)}
-                    </p>
+                  <div className="group relative">
+                    <div className="flex items-center gap-2">
+                      <div>
+                        <h2 className="text-xl font-semibold">
+                          {entry.name || 'Untitled Design'}
+                        </h2>
+                        <p className="text-sm text-muted-foreground">
+                          Created {formatDate(entry.created_at)}
+                        </p>
+                      </div>
+                      <Button 
+                        variant="ghost" 
+                        size="sm" 
+                        onClick={handleNameEdit}
+                        className="opacity-0 group-hover:opacity-100 transition-opacity"
+                      >
+                        <Edit3 className="h-3 w-3" />
+                      </Button>
+                    </div>
                   </div>
                 </div>
                 
                 <div className="flex items-center gap-2">
-                  <Button 
-                    variant="ghost" 
-                    size="sm" 
-                    onClick={handleNameEdit}
-                  >
-                    <Edit3 className="h-4 w-4" />
-                  </Button>
                   <Button onClick={() => onNewVersion(entry.id)}>
                     Add New Version
                   </Button>
