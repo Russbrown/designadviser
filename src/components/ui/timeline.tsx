@@ -52,7 +52,8 @@ export function Timeline({ entries, onEntrySelect, onNewVersion, onDeleteEntry }
             .map((entry, index) => (
               <div
                 key={entry.id}
-                className="flex items-start space-x-4 p-4 border rounded-lg hover:bg-muted/50 transition-colors"
+                className="flex items-start space-x-4 p-4 border rounded-lg hover:bg-muted/50 transition-colors cursor-pointer"
+                onClick={() => onEntrySelect(entry)}
               >
                 <div className="relative">
                   <img
@@ -78,42 +79,43 @@ export function Timeline({ entries, onEntrySelect, onNewVersion, onDeleteEntry }
                         {formatDate(entry.created_at)}
                       </p>
                     </div>
-                    <div className="flex gap-2">
+                    <div className="flex gap-1" onClick={(e) => e.stopPropagation()}>
                       <Button
-                        size="sm"
+                        size="icon"
                         variant="outline"
-                        onClick={() => onEntrySelect(entry)}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onNewVersion(entry.id);
+                        }}
+                        title="New version"
+                        className="h-8 w-8"
                       >
-                        <Eye className="h-4 w-4 mr-1" />
-                        View
+                        <Plus className="h-4 w-4" />
                       </Button>
                       <Button
-                        size="sm"
+                        size="icon"
                         variant="outline"
-                        onClick={() => onNewVersion(entry.id)}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onDeleteEntry(entry.id);
+                        }}
+                        title="Delete design"
+                        className="h-8 w-8 text-destructive hover:text-destructive hover:bg-destructive/10"
                       >
-                        <Plus className="h-4 w-4 mr-1" />
-                        Version
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => onDeleteEntry(entry.id)}
-                        className="text-destructive hover:text-destructive hover:bg-destructive/10"
-                      >
-                        <Trash2 className="h-4 w-4 mr-1" />
-                        Delete
+                        <Trash2 className="h-4 w-4" />
                       </Button>
                     </div>
                   </div>
                   
-                  <p className="text-sm text-muted-foreground mt-2 line-clamp-2">
-                    {entry.context || 'No context provided'}
-                  </p>
+                  {entry.context && (
+                    <p className="text-sm text-muted-foreground mt-2 line-clamp-2">
+                      {entry.context}
+                    </p>
+                  )}
                   
                   {entry.inquiries && (
                     <p className="text-xs text-muted-foreground mt-1 line-clamp-1">
-                      Questions: {entry.inquiries}
+                      {entry.inquiries}
                     </p>
                   )}
                 </div>
