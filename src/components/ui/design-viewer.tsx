@@ -259,8 +259,7 @@ export function DesignViewer({ entry, onBack, onNewVersion, onDelete, onNameUpda
         {/* Design Image */}
         <Card>
           <CardHeader>
-            <CardTitle>Design</CardTitle>
-            <CardDescription className="transition-all duration-300">Version {currentVersion.version_number}</CardDescription>
+            <CardTitle className="transition-all duration-300">Version {currentVersion.version_number}</CardTitle>
           </CardHeader>
           <CardContent>
             <img 
