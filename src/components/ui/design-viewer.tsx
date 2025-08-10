@@ -139,42 +139,43 @@ export function DesignViewer({ entry, onBack, onNewVersion, onDelete, onNameUpda
       <Card>
         <CardContent className="p-4">
           <div className="space-y-4">
-            {/* Top row: Back button, Title, Actions */}
-            <div className="flex items-center justify-between">
-              <Button variant="outline" size="icon" onClick={onBack} title="Back to Timeline">
-                <ArrowLeft className="h-4 w-4" />
-              </Button>
-              
-              <div className="flex items-center gap-2">
-                <Button onClick={() => onNewVersion(entry.id)}>
-                  Add New Version
-                </Button>
-              </div>
-            </div>
-
-            {/* Title row */}
+            {/* Single row: Back button, Title, Edit button, Actions */}
             {!isEditingName ? (
               <div className="flex items-center justify-between">
-                <div>
-                  <h2 className="text-xl font-semibold">
-                    {entry.name || 'Untitled Design'}
-                  </h2>
-                  <p className="text-sm text-muted-foreground">
-                    Created {formatDate(entry.created_at)}
-                  </p>
+                <div className="flex items-center gap-4">
+                  <Button variant="outline" size="icon" onClick={onBack} title="Back to Timeline">
+                    <ArrowLeft className="h-4 w-4" />
+                  </Button>
+                  
+                  <div>
+                    <h2 className="text-xl font-semibold">
+                      {entry.name || 'Untitled Design'}
+                    </h2>
+                    <p className="text-sm text-muted-foreground">
+                      Created {formatDate(entry.created_at)}
+                    </p>
+                  </div>
                 </div>
-                <Button 
-                  variant="ghost" 
-                  size="sm" 
-                  onClick={handleNameEdit}
-                  className="ml-2"
-                >
-                  <Edit3 className="h-4 w-4" />
-                </Button>
+                
+                <div className="flex items-center gap-2">
+                  <Button 
+                    variant="ghost" 
+                    size="sm" 
+                    onClick={handleNameEdit}
+                  >
+                    <Edit3 className="h-4 w-4" />
+                  </Button>
+                  <Button onClick={() => onNewVersion(entry.id)}>
+                    Add New Version
+                  </Button>
+                </div>
               </div>
             ) : (
               <div className="space-y-3">
                 <div className="flex items-center gap-2">
+                  <Button variant="outline" size="icon" onClick={onBack} title="Back to Timeline">
+                    <ArrowLeft className="h-4 w-4" />
+                  </Button>
                   <Input
                     value={editedName}
                     onChange={(e) => setEditedName(e.target.value)}
