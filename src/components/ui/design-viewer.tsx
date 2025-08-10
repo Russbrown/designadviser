@@ -317,10 +317,7 @@ export function DesignViewer({ entry, onBack, onNewVersion, onDelete, onNameUpda
 
         {/* Advice */}
         <Card>
-          <CardHeader>
-            <CardTitle>Design Advice</CardTitle>
-          </CardHeader>
-          <CardContent>
+          <CardContent className="pt-6">
             {currentVersion.advice ? (
               <MarkdownRenderer content={currentVersion.advice} />
             ) : (
