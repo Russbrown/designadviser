@@ -5,7 +5,7 @@ import { DesignEntry } from '@/types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { ChevronLeft, ChevronRight, Clock, ArrowLeft, Trash2, Edit3, Check, X } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Clock, ArrowLeft, Trash2, Edit3, Check, X, ChevronDown } from 'lucide-react';
 import { MarkdownRenderer } from '@/components/ui/markdown-renderer';
 
 interface DesignViewerProps {
@@ -22,6 +22,7 @@ export function DesignViewer({ entry, onBack, onNewVersion, onDelete, onNameUpda
   const [isEditingName, setIsEditingName] = useState(false);
   const [editedName, setEditedName] = useState(entry.name || '');
   const [previousVersionCount, setPreviousVersionCount] = useState(0);
+  const [showContextDropdown, setShowContextDropdown] = useState(false);
   
   // Combine original entry with versions for navigation
   // Original entry is always version 1, additional versions start from 2
@@ -245,8 +246,69 @@ export function DesignViewer({ entry, onBack, onNewVersion, onDelete, onNameUpda
       <div className="space-y-6">
         {/* Design Image */}
         <Card>
-          <CardHeader>
-            <CardTitle className="transition-all duration-300">Version {currentVersion.version_number}</CardTitle>
+          <CardHeader className="relative">
+            <div className="flex items-start justify-between">
+              <CardTitle className="transition-all duration-300">Version {currentVersion.version_number}</CardTitle>
+              
+              {/* Context and Design Problem - Inline */}
+              {(entry.context || entry.inquiries) && (
+                <div className="flex-1 ml-6 space-y-1">
+                  {entry.context && (
+                    <div className="text-sm">
+                      <span className="font-medium text-foreground mr-2">Context:</span>
+                      <span className="text-muted-foreground line-clamp-1">
+                        {entry.context}
+                      </span>
+                    </div>
+                  )}
+                  
+                  {entry.inquiries && (
+                    <div className="text-sm">
+                      <span className="font-medium text-foreground mr-2">Problem:</span>
+                      <span className="text-muted-foreground line-clamp-1">
+                        {entry.inquiries}
+                      </span>
+                    </div>
+                  )}
+                  
+                  {/* Dropdown toggle for full text */}
+                  {((entry.context && entry.context.length > 60) || (entry.inquiries && entry.inquiries.length > 60)) && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => setShowContextDropdown(!showContextDropdown)}
+                      className="h-6 px-2 text-xs"
+                    >
+                      <ChevronDown className={`h-3 w-3 transition-transform ${showContextDropdown ? 'rotate-180' : ''}`} />
+                      {showContextDropdown ? 'Less' : 'More'}
+                    </Button>
+                  )}
+                </div>
+              )}
+            </div>
+            
+            {/* Expanded dropdown content */}
+            {showContextDropdown && (entry.context || entry.inquiries) && (
+              <div className="mt-4 pt-4 border-t space-y-3">
+                {entry.context && (
+                  <div>
+                    <h4 className="text-sm font-medium text-foreground mb-2">Context</h4>
+                    <p className="text-sm text-muted-foreground">
+                      {entry.context}
+                    </p>
+                  </div>
+                )}
+                
+                {entry.inquiries && (
+                  <div>
+                    <h4 className="text-sm font-medium text-foreground mb-2">Design Problem</h4>
+                    <p className="text-sm text-muted-foreground">
+                      {entry.inquiries}
+                    </p>
+                  </div>
+                )}
+              </div>
+            )}
           </CardHeader>
           <CardContent>
             <img 
@@ -256,31 +318,6 @@ export function DesignViewer({ entry, onBack, onNewVersion, onDelete, onNameUpda
             />
           </CardContent>
         </Card>
-
-        {/* Context and Design Goals */}
-        {(entry.context || entry.inquiries) && (
-          <Card>
-            <CardContent className="space-y-4 pt-6">
-              {entry.context && (
-                <div>
-                  <h4 className="text-sm font-medium text-foreground mb-2">Context</h4>
-                  <p className="text-sm text-muted-foreground">
-                    {entry.context}
-                  </p>
-                </div>
-              )}
-              
-              {entry.inquiries && (
-                <div>
-                  <h4 className="text-sm font-medium text-foreground mb-2">Design Problem</h4>
-                  <p className="text-sm text-muted-foreground">
-                    {entry.inquiries}
-                  </p>
-                </div>
-              )}
-            </CardContent>
-          </Card>
-        )}
 
         {/* Advice */}
         <Card>

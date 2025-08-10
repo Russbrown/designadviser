@@ -60,6 +60,13 @@
 
 /* Syntax highlighting styles for code blocks */
 @layer components {
+  .line-clamp-1 {
+    overflow: hidden;
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 1;
+  }
+
   .hljs {
     @apply bg-muted text-foreground;
   }
