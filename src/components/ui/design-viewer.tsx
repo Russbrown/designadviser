@@ -310,7 +310,7 @@ export function DesignViewer({ entry, onBack, onNewVersion, onDelete, onNameUpda
             <img 
               src={currentVersion.image_url || ''} 
               alt={`Design version ${currentVersion.version_number}`}
-              className="w-full rounded-lg shadow-md"
+              className="max-w-full max-h-[350px] h-auto rounded-lg shadow-md object-contain mx-auto block"
             />
             
             {/* Advice Section */}
