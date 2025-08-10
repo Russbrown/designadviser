@@ -343,7 +343,7 @@ export async function generateDesignName({
       type: 'image_url',
       image_url: {
         url: imageUrl,
-        detail: 'low', // Use low detail for name generation to save costs
+        detail: 'high', // Use high detail for all image analysis
       },
     });
     
