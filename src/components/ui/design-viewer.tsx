@@ -274,7 +274,7 @@ export function DesignViewer({ entry, onBack, onNewVersion, onDelete, onNameUpda
         {/* Context and Design Goals */}
         {(entry.context || entry.inquiries) && (
           <Card>
-            <CardContent className="space-y-4">
+            <CardContent className="space-y-4 pt-6">
               {entry.context && (
                 <div>
                   <h4 className="text-sm font-medium text-foreground mb-2">Context</h4>
