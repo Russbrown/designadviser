@@ -148,7 +148,7 @@ export function DesignViewer({ entry, onBack, onNewVersion, onDelete, onNameUpda
                   </Button>
                   
                   <div className="group relative">
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-start gap-2">
                       <div>
                         <h2 className="text-xl font-semibold">
                           {entry.name || 'Untitled Design'}
@@ -161,7 +161,7 @@ export function DesignViewer({ entry, onBack, onNewVersion, onDelete, onNameUpda
                         variant="ghost" 
                         size="sm" 
                         onClick={handleNameEdit}
-                        className="opacity-0 group-hover:opacity-100 transition-opacity"
+                        className="opacity-0 group-hover:opacity-100 transition-opacity mt-0.5"
                       >
                         <Edit3 className="h-3 w-3" />
                       </Button>
