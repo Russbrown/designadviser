@@ -254,45 +254,47 @@ export function DesignViewer({ entry, onBack, onNewVersion, onDelete, onNameUpda
         </CardContent>
       </Card>
 
-      {/* Current version display */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Design Image and Context */}
+      {/* Current version display - Single column layout */}
+      <div className="space-y-6">
+        {/* Design Image */}
         <Card>
           <CardHeader>
             <CardTitle>Design</CardTitle>
             <CardDescription className="transition-all duration-300">Version {currentVersion.version_number}</CardDescription>
           </CardHeader>
-          <CardContent className="space-y-4">
+          <CardContent>
             <img 
               src={currentVersion.image_url || ''} 
               alt={`Design version ${currentVersion.version_number}`}
               className="w-full rounded-lg shadow-md"
             />
-            
-            {/* Context and Design Goals */}
-            {(entry.context || entry.inquiries) && (
-              <div className="space-y-3 pt-4 border-t">
-                {entry.context && (
-                  <div>
-                    <h4 className="text-sm font-medium text-foreground mb-2">Context</h4>
-                    <p className="text-sm text-muted-foreground">
-                      {entry.context}
-                    </p>
-                  </div>
-                )}
-                
-                {entry.inquiries && (
-                  <div>
-                    <h4 className="text-sm font-medium text-foreground mb-2">Design Problem</h4>
-                    <p className="text-sm text-muted-foreground">
-                      {entry.inquiries}
-                    </p>
-                  </div>
-                )}
-              </div>
-            )}
           </CardContent>
         </Card>
+
+        {/* Context and Design Goals */}
+        {(entry.context || entry.inquiries) && (
+          <Card>
+            <CardContent className="space-y-4">
+              {entry.context && (
+                <div>
+                  <h4 className="text-sm font-medium text-foreground mb-2">Context</h4>
+                  <p className="text-sm text-muted-foreground">
+                    {entry.context}
+                  </p>
+                </div>
+              )}
+              
+              {entry.inquiries && (
+                <div>
+                  <h4 className="text-sm font-medium text-foreground mb-2">Design Problem</h4>
+                  <p className="text-sm text-muted-foreground">
+                    {entry.inquiries}
+                  </p>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        )}
 
         {/* Advice */}
         <Card>
