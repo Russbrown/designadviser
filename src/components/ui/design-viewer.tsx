@@ -244,7 +244,7 @@ export function DesignViewer({ entry, onBack, onNewVersion, onDelete, onNameUpda
 
       {/* Current version display - Single column layout */}
       <div className="space-y-6">
-        {/* Design Image */}
+        {/* Design Image and Advice */}
         <Card>
           <CardHeader className="relative">
             <div className="flex items-baseline justify-between">
@@ -306,25 +306,23 @@ export function DesignViewer({ entry, onBack, onNewVersion, onDelete, onNameUpda
               </div>
             )}
           </CardHeader>
-          <CardContent>
+          <CardContent className="space-y-6">
             <img 
               src={currentVersion.image_url || ''} 
               alt={`Design version ${currentVersion.version_number}`}
               className="w-full rounded-lg shadow-md"
             />
-          </CardContent>
-        </Card>
-
-        {/* Advice */}
-        <Card>
-          <CardContent className="pt-6">
-            {currentVersion.advice ? (
-              <MarkdownRenderer content={currentVersion.advice} />
-            ) : (
-              <p className="text-muted-foreground italic">
-                No advice generated for this version yet.
-              </p>
-            )}
+            
+            {/* Advice Section */}
+            <div>
+              {currentVersion.advice ? (
+                <MarkdownRenderer content={currentVersion.advice} />
+              ) : (
+                <p className="text-muted-foreground italic">
+                  No advice generated for this version yet.
+                </p>
+              )}
+            </div>
           </CardContent>
         </Card>
       </div>
