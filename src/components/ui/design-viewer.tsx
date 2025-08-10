@@ -135,120 +135,121 @@ export function DesignViewer({ entry, onBack, onNewVersion, onDelete, onNameUpda
 
   return (
     <div className="space-y-6">
-      {/* Header with navigation */}
-      <div className="flex items-center justify-between">
-        <Button variant="outline" onClick={onBack}>
-          <ArrowLeft className="h-4 w-4 mr-2" />
-          Back to Timeline
-        </Button>
-        
-        <Button onClick={() => onNewVersion(entry.id)}>
-          Add New Version
-        </Button>
-      </div>
-
-      {/* Entry Name Section */}
+      {/* Consolidated Header */}
       <Card>
         <CardContent className="p-4">
-          {!isEditingName ? (
+          <div className="space-y-4">
+            {/* Top row: Back button, Title, Actions */}
             <div className="flex items-center justify-between">
-              <div>
-                <h2 className="text-xl font-semibold">
-                  {entry.name || 'Untitled Design'}
-                </h2>
-                <p className="text-sm text-muted-foreground">
-                  Created {formatDate(entry.created_at)}
-                </p>
-              </div>
-              <Button 
-                variant="ghost" 
-                size="sm" 
-                onClick={handleNameEdit}
-                className="ml-2"
-              >
-                <Edit3 className="h-4 w-4" />
+              <Button variant="outline" onClick={onBack}>
+                <ArrowLeft className="h-4 w-4 mr-2" />
+                Back to Timeline
               </Button>
-            </div>
-          ) : (
-            <div className="space-y-3">
+              
               <div className="flex items-center gap-2">
-                <Input
-                  value={editedName}
-                  onChange={(e) => setEditedName(e.target.value)}
-                  placeholder="Enter design name..."
-                  className="flex-1"
-                  autoFocus
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter') handleNameSave();
-                    if (e.key === 'Escape') handleNameCancel();
-                  }}
-                />
-                <Button size="sm" onClick={handleNameSave}>
-                  <Check className="h-4 w-4" />
-                </Button>
-                <Button size="sm" variant="outline" onClick={handleNameCancel}>
-                  <X className="h-4 w-4" />
+                <Button onClick={() => onNewVersion(entry.id)}>
+                  Add New Version
                 </Button>
               </div>
-              <p className="text-xs text-muted-foreground">
-                Press Enter to save, Escape to cancel
-              </p>
             </div>
-          )}
-        </CardContent>
-      </Card>
 
-      {/* Version navigation */}
-      {allVersions.length > 1 && (
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center space-x-4">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={goToPrevious}
-                  disabled={currentVersionIndex === 0}
-                >
-                  <ChevronLeft className="h-4 w-4" />
-                </Button>
-                
-                <div className="text-center">
-                  <p className="text-sm font-medium transition-all duration-300 ease-in-out">
-                    Version {currentVersion.version_number} of {allVersions.length}
-                  </p>
-                  <p className="text-xs text-muted-foreground flex items-center justify-center gap-1">
-                    <Clock className="h-3 w-3" />
-                    {formatDate(currentVersion.created_at)}
+            {/* Title row */}
+            {!isEditingName ? (
+              <div className="flex items-center justify-between">
+                <div>
+                  <h2 className="text-xl font-semibold">
+                    {entry.name || 'Untitled Design'}
+                  </h2>
+                  <p className="text-sm text-muted-foreground">
+                    Created {formatDate(entry.created_at)}
                   </p>
                 </div>
-                
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={goToNext}
-                  disabled={currentVersionIndex === allVersions.length - 1}
+                <Button 
+                  variant="ghost" 
+                  size="sm" 
+                  onClick={handleNameEdit}
+                  className="ml-2"
                 >
-                  <ChevronRight className="h-4 w-4" />
+                  <Edit3 className="h-4 w-4" />
                 </Button>
               </div>
-              
-              {/* Version indicators */}
-              <div className="flex space-x-1">
-                {allVersions.map((_, index) => (
-                  <button
-                    key={index}
-                    className={`w-2 h-2 rounded-full ${
-                      index === currentVersionIndex ? 'bg-primary' : 'bg-muted'
-                    }`}
-                    onClick={() => setCurrentVersionIndex(index)}
+            ) : (
+              <div className="space-y-3">
+                <div className="flex items-center gap-2">
+                  <Input
+                    value={editedName}
+                    onChange={(e) => setEditedName(e.target.value)}
+                    placeholder="Enter design name..."
+                    className="flex-1"
+                    autoFocus
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') handleNameSave();
+                      if (e.key === 'Escape') handleNameCancel();
+                    }}
                   />
-                ))}
+                  <Button size="sm" onClick={handleNameSave}>
+                    <Check className="h-4 w-4" />
+                  </Button>
+                  <Button size="sm" variant="outline" onClick={handleNameCancel}>
+                    <X className="h-4 w-4" />
+                  </Button>
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  Press Enter to save, Escape to cancel
+                </p>
               </div>
-            </div>
-          </CardContent>
-        </Card>
-      )}
+            )}
+
+            {/* Version navigation - only show if multiple versions */}
+            {allVersions.length > 1 && (
+              <div className="flex items-center justify-between pt-2 border-t">
+                <div className="flex items-center space-x-4">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={goToPrevious}
+                    disabled={currentVersionIndex === 0}
+                  >
+                    <ChevronLeft className="h-4 w-4" />
+                  </Button>
+                  
+                  <div className="text-center">
+                    <p className="text-sm font-medium transition-all duration-300 ease-in-out">
+                      Version {currentVersion.version_number} of {allVersions.length}
+                    </p>
+                    <p className="text-xs text-muted-foreground flex items-center justify-center gap-1">
+                      <Clock className="h-3 w-3" />
+                      {formatDate(currentVersion.created_at)}
+                    </p>
+                  </div>
+                  
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={goToNext}
+                    disabled={currentVersionIndex === allVersions.length - 1}
+                  >
+                    <ChevronRight className="h-4 w-4" />
+                  </Button>
+                </div>
+                
+                {/* Version indicators */}
+                <div className="flex space-x-1">
+                  {allVersions.map((_, index) => (
+                    <button
+                      key={index}
+                      className={`w-2 h-2 rounded-full ${
+                        index === currentVersionIndex ? 'bg-primary' : 'bg-muted'
+                      }`}
+                      onClick={() => setCurrentVersionIndex(index)}
+                    />
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        </CardContent>
+      </Card>
 
       {/* Current version display */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
