@@ -247,29 +247,25 @@ export function DesignViewer({ entry, onBack, onNewVersion, onDelete, onNameUpda
         {/* Design Image */}
         <Card>
           <CardHeader className="relative">
-            <div className="flex items-start justify-between">
-              <CardTitle className="transition-all duration-300">Version {currentVersion.version_number}</CardTitle>
+            <div className="flex items-baseline justify-between">
+              <CardTitle className="transition-all duration-300 flex-shrink-0">Version {currentVersion.version_number}</CardTitle>
               
               {/* Context and Design Problem - Inline */}
               {(entry.context || entry.inquiries) && (
-                <div className="flex-1 ml-6 space-y-1">
-                  {entry.context && (
-                    <div className="text-sm">
-                      <span className="font-medium text-foreground mr-2">Context:</span>
-                      <span className="text-muted-foreground line-clamp-1">
+                <div className="flex items-baseline flex-1 ml-6 gap-4">
+                  <div className="flex-1 space-y-1 min-w-0">
+                    {entry.context && (
+                      <div className="text-sm text-muted-foreground line-clamp-1">
                         {entry.context}
-                      </span>
-                    </div>
-                  )}
-                  
-                  {entry.inquiries && (
-                    <div className="text-sm">
-                      <span className="font-medium text-foreground mr-2">Problem:</span>
-                      <span className="text-muted-foreground line-clamp-1">
+                      </div>
+                    )}
+                    
+                    {entry.inquiries && (
+                      <div className="text-sm text-muted-foreground line-clamp-1">
                         {entry.inquiries}
-                      </span>
-                    </div>
-                  )}
+                      </div>
+                    )}
+                  </div>
                   
                   {/* Dropdown toggle for full text */}
                   {((entry.context && entry.context.length > 60) || (entry.inquiries && entry.inquiries.length > 60)) && (
@@ -277,7 +273,7 @@ export function DesignViewer({ entry, onBack, onNewVersion, onDelete, onNameUpda
                       variant="ghost"
                       size="sm"
                       onClick={() => setShowContextDropdown(!showContextDropdown)}
-                      className="h-6 px-2 text-xs"
+                      className="h-6 px-2 text-xs flex-shrink-0"
                     >
                       <ChevronDown className={`h-3 w-3 transition-transform ${showContextDropdown ? 'rotate-180' : ''}`} />
                       {showContextDropdown ? 'Less' : 'More'}
