@@ -200,19 +200,6 @@ export function DesignViewer({ entry, onBack, onNewVersion, onDelete, onNameUpda
                       >
                         <ChevronRight className="h-4 w-4" />
                       </Button>
-                      
-                      {/* Version indicators */}
-                      <div className="flex space-x-1 ml-2">
-                        {allVersions.map((_, index) => (
-                          <button
-                            key={index}
-                            className={`w-2 h-2 rounded-full ${
-                              index === currentVersionIndex ? 'bg-primary' : 'bg-muted'
-                            }`}
-                            onClick={() => setCurrentVersionIndex(index)}
-                          />
-                        ))}
-                      </div>
                     </div>
                   )}
                   
