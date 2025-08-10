@@ -141,9 +141,8 @@ export function DesignViewer({ entry, onBack, onNewVersion, onDelete, onNameUpda
           <div className="space-y-4">
             {/* Top row: Back button, Title, Actions */}
             <div className="flex items-center justify-between">
-              <Button variant="outline" onClick={onBack}>
-                <ArrowLeft className="h-4 w-4 mr-2" />
-                Back to Timeline
+              <Button variant="outline" size="icon" onClick={onBack} title="Back to Timeline">
+                <ArrowLeft className="h-4 w-4" />
               </Button>
               
               <div className="flex items-center gap-2">
