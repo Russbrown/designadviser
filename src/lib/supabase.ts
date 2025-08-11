@@ -47,3 +47,14 @@ export interface UserSettings {
   user_id: string;
   global_advice: string | null;
 }
+
+export interface AdviceRating {
+  id: string;
+  created_at: string;
+  updated_at: string;
+  rating: number;
+  feedback: string | null;
+  user_id: string | null;
+  entry_id: string | null;
+  version_id: string | null;
+}

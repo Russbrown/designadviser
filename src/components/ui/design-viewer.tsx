@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { ChevronLeft, ChevronRight, Clock, ArrowLeft, Trash2, Edit3, Check, X, ChevronDown } from 'lucide-react';
 import { MarkdownRenderer } from '@/components/ui/markdown-renderer';
+import { AdviceRating } from '@/components/ui/advice-rating';
 
 interface DesignViewerProps {
   entry: DesignEntry;
@@ -312,6 +313,16 @@ export function DesignViewer({ entry, onBack, onNewVersion, onDelete, onNameUpda
               alt={`Design version ${currentVersion.version_number}`}
               className="max-w-full max-h-[350px] h-auto rounded-lg shadow-md object-contain mx-auto block"
             />
+            
+            {/* Rating Section */}
+            {currentVersion.advice && (
+              <div className="pb-4 border-b">
+                <AdviceRating
+                  entryId={'isOriginal' in currentVersion ? entry.id : undefined}
+                  versionId={'isOriginal' in currentVersion ? undefined : currentVersion.id}
+                />
+              </div>
+            )}
             
             {/* Advice Section */}
             <div>

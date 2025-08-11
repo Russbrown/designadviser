@@ -101,6 +101,27 @@ export class AnalyticsService {
     });
   }
 
+  static trackAdviceRating(userId: string | null, metadata?: {
+    rating?: number;
+    hasFeedback?: boolean;
+    entryId?: string;
+    versionId?: string;
+    isUpdate?: boolean;
+  }) {
+    if (typeof window === 'undefined') return;
+    
+    this.init();
+    posthog.capture('advice_rated', {
+      user_id: userId,
+      timestamp: new Date().toISOString(),
+      rating: metadata?.rating,
+      has_feedback: metadata?.hasFeedback,
+      entry_id: metadata?.entryId,
+      version_id: metadata?.versionId,
+      is_update: metadata?.isUpdate,
+    });
+  }
+
   static reset() {
     if (typeof window !== 'undefined') {
       posthog.reset();
