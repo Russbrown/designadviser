@@ -64,6 +64,11 @@ export default function Home() {
   const [versionDialogOpen, setVersionDialogOpen] = useState(false);
   const [versionTargetEntry, setVersionTargetEntry] = useState<DesignEntry | null>(null);
 
+  // Track pageview on mount
+  useEffect(() => {
+    AnalyticsService.trackPageView();
+  }, []);
+
   // Load entries and settings from database on mount
   useEffect(() => {
     const loadData = async () => {
@@ -71,17 +76,13 @@ export default function Home() {
       if (authLoading) return;
       
       try {
-        // Load entries
-        const entriesResponse = await fetch('/api/entries');
+        // Load entries - server now handles user filtering securely
+        const entriesUrl = user?.id ? `/api/entries?user_id=${user.id}` : '/api/entries';
+        const entriesResponse = await fetch(entriesUrl);
         if (entriesResponse.ok) {
           const data = await entriesResponse.json();
           
-          // Filter entries to only show user's own entries and anonymous entries
-          const filteredData = data.filter((entry: DesignEntry) => {
-            return entry.user_id === null || entry.user_id === user?.id;
-          });
-          
-          console.log('Loaded entries from API:', filteredData.map((entry: DesignEntry) => ({
+          console.log('Loaded entries from API:', data.map((entry: DesignEntry) => ({
             id: entry.id,
             versionsCount: entry.design_versions?.length || 0,
             versions: entry.design_versions?.map((v) => ({ 
@@ -89,7 +90,7 @@ export default function Home() {
               version_number: v.version_number 
             })) || []
           })));
-          setEntries(filteredData);
+          setEntries(data);
         }
 
         // Load settings
@@ -118,6 +119,12 @@ export default function Home() {
 
   const handleAdviceSubmit = useCallback(async (designProblem: string) => {
     if (!currentImage) return;
+    
+    // Require authentication for uploads
+    if (!user) {
+      setError('Please sign in to upload designs and get AI advice');
+      return;
+    }
 
     setIsAnalyzing(true);
     setError(null); // Clear any previous errors
@@ -178,7 +185,8 @@ export default function Home() {
       });
 
       // Save entry to database
-      const entryResponse = await fetch('/api/entries', {
+      const entryUrl = `/api/entries?user_id=${user.id}`;
+      const entryResponse = await fetch(entryUrl, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -190,7 +198,6 @@ export default function Home() {
           context: null, // No separate context field anymore
           inquiries: designProblem || null,
           advice,
-          user_id: user?.id || null,
         }),
       });
       
@@ -226,7 +233,7 @@ export default function Home() {
     } finally {
       setIsAnalyzing(false);
     }
-  }, [currentImage, globalSettings, user?.id]);
+  }, [currentImage, globalSettings, user]);
 
   const handleEntrySelect = useCallback((entry: DesignEntry) => {
     console.log('Selecting entry:', {
@@ -396,10 +403,10 @@ export default function Home() {
       </div>
 
       {!user && (
-        <Card className="border-blue-200 bg-blue-50">
+        <Card className="border-orange-200 bg-orange-50">
           <CardContent className="p-4">
-            <p className="text-sm text-blue-700">
-              💡 <strong>Sign in</strong> to save your design entries permanently. Without an account, your entries will only be visible during this session.
+            <p className="text-sm text-orange-700">
+              🔒 <strong>Sign in required</strong> to upload designs and get AI advice. Create an account to save your design entries and access all features.
             </p>
           </CardContent>
         </Card>
@@ -414,17 +421,27 @@ export default function Home() {
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-6">
-            <ImageUpload 
-              onImageUpload={handleImageUpload}
-              currentImage={currentImage ? URL.createObjectURL(currentImage) : undefined}
-              onClear={() => setCurrentImage(null)}
-            />
+            <div className={!user ? 'opacity-50 pointer-events-none' : ''}>
+              <ImageUpload 
+                onImageUpload={handleImageUpload}
+                currentImage={currentImage ? URL.createObjectURL(currentImage) : undefined}
+                onClear={() => setCurrentImage(null)}
+              />
+              
+              <AdviceForm 
+                onSubmit={handleAdviceSubmit}
+                isLoading={isAnalyzing}
+                hasImage={!!currentImage}
+              />
+            </div>
             
-            <AdviceForm 
-              onSubmit={handleAdviceSubmit}
-              isLoading={isAnalyzing}
-              hasImage={!!currentImage}
-            />
+            {!user && (
+              <div className="text-center py-8">
+                <p className="text-muted-foreground mb-4">
+                  Sign in to upload your designs and get personalized AI feedback
+                </p>
+              </div>
+            )}
             
             {error && (
               <div className="p-4 border border-destructive bg-destructive/10 rounded-lg">

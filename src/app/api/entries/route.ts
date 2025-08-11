@@ -1,15 +1,29 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase';
 
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
-    const { data, error } = await supabaseAdmin
+    // Get user ID from query params (passed by frontend)
+    const { searchParams } = new URL(request.url);
+    const userId = searchParams.get('user_id');
+    
+    let query = supabaseAdmin
       .from('design_entries')
       .select(`
         *,
         design_versions (*)
-      `)
-      .order('created_at', { ascending: false });
+      `);
+
+    // Apply proper filtering based on authentication status
+    if (userId && userId !== 'null') {
+      // Authenticated user: show their entries + anonymous entries
+      query = query.or(`user_id.is.null,user_id.eq.${userId}`);
+    } else {
+      // Unauthenticated: only show anonymous entries
+      query = query.is('user_id', null);
+    }
+
+    const { data, error } = await query.order('created_at', { ascending: false });
 
     if (error) throw error;
 
@@ -25,8 +39,19 @@ export async function GET() {
 
 export async function POST(request: NextRequest) {
   try {
+    // Verify user authentication
+    const { searchParams } = new URL(request.url);
+    const userId = searchParams.get('user_id');
+    
+    if (!userId || userId === 'null') {
+      return NextResponse.json(
+        { error: 'Authentication required to create entries' },
+        { status: 401 }
+      );
+    }
+
     const body = await request.json();
-    const { name, image_url, image_path, context, inquiries, advice, user_id } = body;
+    const { name, image_url, image_path, context, inquiries, advice } = body;
 
     const { data, error } = await supabaseAdmin
       .from('design_entries')
@@ -37,7 +62,7 @@ export async function POST(request: NextRequest) {
         context,
         inquiries,
         advice,
-        user_id: user_id || null // Support both authenticated and anonymous usage
+        user_id: userId
       }])
       .select()
       .single();

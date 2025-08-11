@@ -7,9 +7,13 @@ export class AnalyticsService {
     if (typeof window !== 'undefined' && !this.isInitialized) {
       posthog.init(process.env.NEXT_PUBLIC_POSTHOG_KEY!, {
         api_host: process.env.NEXT_PUBLIC_POSTHOG_HOST || 'https://eu.posthog.com',
+        capture_pageview: false, // We'll manually capture pageviews
+        capture_pageleave: true,
         loaded: (posthog) => {
           if (process.env.NODE_ENV === 'development') posthog.debug();
         },
+        // Disable web vitals to prevent the warning
+        capture_performance: false,
       });
       this.isInitialized = true;
     }
@@ -119,6 +123,15 @@ export class AnalyticsService {
       entry_id: metadata?.entryId,
       version_id: metadata?.versionId,
       is_update: metadata?.isUpdate,
+    });
+  }
+
+  static trackPageView(path?: string) {
+    if (typeof window === 'undefined') return;
+    
+    this.init();
+    posthog.capture('$pageview', {
+      $current_url: path || window.location.href,
     });
   }
 
