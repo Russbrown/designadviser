@@ -3,12 +3,12 @@ import { supabaseAdmin } from '@/lib/supabase';
 
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const body = await request.json();
     const { rating, feedback } = body;
-    const ratingId = params.id;
+    const { id: ratingId } = await params;
 
     if (!rating || !ratingId) {
       return NextResponse.json(
@@ -52,10 +52,10 @@ export async function PUT(
 
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const ratingId = params.id;
+    const { id: ratingId } = await params;
 
     if (!ratingId) {
       return NextResponse.json(
