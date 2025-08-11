@@ -1,0 +1,109 @@
+import posthog from 'posthog-js'
+
+export class AnalyticsService {
+  static isInitialized = false;
+
+  static init() {
+    if (typeof window !== 'undefined' && !this.isInitialized) {
+      posthog.init(process.env.NEXT_PUBLIC_POSTHOG_KEY!, {
+        api_host: process.env.NEXT_PUBLIC_POSTHOG_HOST || 'https://eu.posthog.com',
+        loaded: (posthog) => {
+          if (process.env.NODE_ENV === 'development') posthog.debug();
+        },
+      });
+      this.isInitialized = true;
+    }
+  }
+
+  static trackLogin(userId: string, userEmail?: string) {
+    if (typeof window === 'undefined') return;
+    
+    this.init();
+    posthog.identify(userId, {
+      email: userEmail,
+    });
+    posthog.capture('user_login', {
+      user_id: userId,
+      timestamp: new Date().toISOString(),
+      user_agent: window.navigator.userAgent,
+    });
+  }
+
+  static trackImageUpload(userId: string | null, metadata?: {
+    fileName?: string;
+    fileSize?: number;
+    fileType?: string;
+  }) {
+    if (typeof window === 'undefined') return;
+    
+    this.init();
+    posthog.capture('image_upload', {
+      user_id: userId,
+      timestamp: new Date().toISOString(),
+      file_name: metadata?.fileName,
+      file_size: metadata?.fileSize,
+      file_type: metadata?.fileType,
+    });
+  }
+
+  static trackDesignAnalysis(userId: string | null, metadata?: {
+    hasContext?: boolean;
+    hasInquiries?: boolean;
+    analysisLength?: number;
+  }) {
+    if (typeof window === 'undefined') return;
+    
+    this.init();
+    posthog.capture('design_analysis', {
+      user_id: userId,
+      timestamp: new Date().toISOString(),
+      has_context: metadata?.hasContext,
+      has_inquiries: metadata?.hasInquiries,
+      analysis_length: metadata?.analysisLength,
+    });
+  }
+
+  static trackVersionCreation(userId: string | null, metadata?: {
+    entryId?: string;
+    versionNumber?: number;
+    hasNotes?: boolean;
+    fileName?: string;
+    fileSize?: number;
+    fileType?: string;
+  }) {
+    if (typeof window === 'undefined') return;
+    
+    this.init();
+    posthog.capture('version_created', {
+      user_id: userId,
+      timestamp: new Date().toISOString(),
+      entry_id: metadata?.entryId,
+      version_number: metadata?.versionNumber,
+      has_notes: metadata?.hasNotes,
+      file_name: metadata?.fileName,
+      file_size: metadata?.fileSize,
+      file_type: metadata?.fileType,
+    });
+  }
+
+  static trackSettingsUpdate(userId: string | null, metadata?: {
+    settingsLength?: number;
+    hadPreviousSettings?: boolean;
+  }) {
+    if (typeof window === 'undefined') return;
+    
+    this.init();
+    posthog.capture('global_settings_updated', {
+      user_id: userId,
+      timestamp: new Date().toISOString(),
+      settings_length: metadata?.settingsLength,
+      had_previous_settings: metadata?.hadPreviousSettings,
+    });
+  }
+
+  static reset() {
+    if (typeof window !== 'undefined') {
+      posthog.reset();
+    }
+  }
+}

@@ -3,6 +3,7 @@
 import { createContext, useContext, useEffect, useState } from 'react';
 import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/lib/supabase';
+import { AnalyticsService } from '@/lib/analytics';
 
 interface AuthContextType {
   user: User | null;
@@ -45,6 +46,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           setSession(session);
           setUser(session?.user ?? null);
           setLoading(false);
+          
+          // Track login event
+          if (event === 'SIGNED_IN' && session?.user) {
+            AnalyticsService.trackLogin(session.user.id, session.user.email);
+          }
         } catch (error) {
           console.error('Error handling auth state change:', error);
           setSession(null);
@@ -86,6 +92,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const signOut = async () => {
     try {
       await supabase.auth.signOut();
+      AnalyticsService.reset();
     } catch (error) {
       console.error('Error signing out:', error);
       // Don't throw here as sign out should always succeed from UI perspective

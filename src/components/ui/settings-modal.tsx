@@ -11,6 +11,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
+import { AnalyticsService } from '@/lib/analytics';
 
 interface SettingsModalProps {
   isOpen: boolean;
@@ -61,6 +62,12 @@ export function SettingsModal({
       
       const result = await response.json();
       console.log('Settings saved successfully:', result);
+      
+      // Track settings update event
+      AnalyticsService.trackSettingsUpdate(userId, {
+        settingsLength: settings.length,
+        hadPreviousSettings: !!initialSettings && initialSettings.length > 0,
+      });
       
       onSettingsChange(settings);
       onClose();

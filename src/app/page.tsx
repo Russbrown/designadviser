@@ -15,6 +15,7 @@ import { SettingsModal } from '@/components/ui/settings-modal';
 import { useAuth } from '@/contexts/auth-context';
 import { Settings } from 'lucide-react';
 import { ErrorHandler } from '@/components/error-handler';
+import { AnalyticsService } from '@/lib/analytics';
 
 // Real OpenAI-powered design analysis
 const generateAdvice = async (imageUrl: string, context: string, inquiries: string, globalSettings: string): Promise<string> => {
@@ -137,6 +138,13 @@ export default function Home() {
       
       const { url: imageUrl, path: imagePath } = await uploadResponse.json();
       
+      // Track image upload event
+      AnalyticsService.trackImageUpload(user?.id || null, {
+        fileName: currentImage.name,
+        fileSize: currentImage.size,
+        fileType: currentImage.type
+      });
+      
       // Generate a design name using AI
       const nameResponse = await fetch('/api/generate-name', {
         method: 'POST',
@@ -161,6 +169,13 @@ export default function Home() {
       
       // Generate advice using OpenAI API - this will throw if it fails
       const advice = await generateAdvice(imageUrl, '', inquiries, globalSettings);
+      
+      // Track design analysis completion
+      AnalyticsService.trackDesignAnalysis(user?.id || null, {
+        hasContext: false,
+        hasInquiries: !!inquiries,
+        analysisLength: advice.length
+      });
 
       // Save entry to database
       const entryResponse = await fetch('/api/entries', {

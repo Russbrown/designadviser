@@ -14,6 +14,8 @@ import { ImageUpload } from '@/components/ui/image-upload';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { DesignEntry } from '@/types';
+import { AnalyticsService } from '@/lib/analytics';
+import { useAuth } from '@/contexts/auth-context';
 
 interface VersionCreationDialogProps {
   isOpen: boolean;
@@ -81,6 +83,7 @@ export function VersionCreationDialog({
   globalSettings,
   onLoadingChange,
 }: VersionCreationDialogProps) {
+  const { user } = useAuth();
   const [newImage, setNewImage] = useState<File | null>(null);
   const [notes, setNotes] = useState('');
   const [isAnalyzing, setIsAnalyzing] = useState(false);
@@ -156,6 +159,17 @@ export function VersionCreationDialog({
       }
       
       const newVersion = await versionResponse.json();
+      
+      // Track version creation event
+      AnalyticsService.trackVersionCreation(user?.id || null, {
+        entryId: entry.id,
+        versionNumber: newVersion.version_number,
+        hasNotes: !!notes,
+        fileName: newImage.name,
+        fileSize: newImage.size,
+        fileType: newImage.type,
+      });
+      
       onVersionCreated(entry.id, newVersion);
       
       // Reset form and close dialog
