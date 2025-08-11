@@ -140,7 +140,9 @@ export default function Home() {
       });
       
       if (!uploadResponse.ok) {
-        throw new Error('Failed to upload image');
+        const errorText = await uploadResponse.text();
+        console.error('Upload failed:', uploadResponse.status, errorText);
+        throw new Error(`Failed to upload image: ${uploadResponse.status} ${errorText}`);
       }
       
       const { url: imageUrl, path: imagePath } = await uploadResponse.json();

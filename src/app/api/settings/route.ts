@@ -70,13 +70,15 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const { globalAdvice, user_id } = body;
 
-
-    if (typeof globalAdvice !== 'string') {
+    // Input validation and sanitization
+    if (typeof globalAdvice !== 'string' || globalAdvice.length > 10000) {
       return NextResponse.json(
-        { error: 'Invalid settings format' },
+        { error: 'Invalid settings format. Global advice must be a string under 10,000 characters.' },
         { status: 400 }
       );
     }
+
+    const sanitizedGlobalAdvice = globalAdvice.trim();
 
     // If no user_id provided, reject the request
     if (!user_id) {
@@ -95,7 +97,7 @@ export async function POST(request: NextRequest) {
       .from('user_settings')
       .upsert({
         user_id: user_id,
-        global_advice: globalAdvice,
+        global_advice: sanitizedGlobalAdvice,
       }, {
         onConflict: 'user_id' // This tells upsert to update when user_id matches
       })
@@ -106,9 +108,8 @@ export async function POST(request: NextRequest) {
 
     if (error) {
       console.error('Database error saving settings:', error);
-      console.error('Error details:', JSON.stringify(error, null, 2));
       return NextResponse.json(
-        { error: 'Failed to save settings', details: error.message },
+        { error: 'Failed to save settings. Please try again.' },
         { status: 500 }
       );
     }
@@ -123,9 +124,8 @@ export async function POST(request: NextRequest) {
     });
   } catch (error) {
     console.error('Unexpected error saving settings:', error);
-    console.error('Error stack:', error instanceof Error ? error.stack : 'No stack trace');
     return NextResponse.json(
-      { error: 'Failed to save settings', details: error instanceof Error ? error.message : 'Unknown error' },
+      { error: 'Failed to save settings. Please try again.' },
       { status: 500 }
     );
   }
