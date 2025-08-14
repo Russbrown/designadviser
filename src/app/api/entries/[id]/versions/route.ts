@@ -32,7 +32,7 @@ export async function POST(
   try {
     const { id } = await params;
     const body = await request.json();
-    const { image_url, image_path, advice, notes } = body;
+    const { image_url, image_path, advice, senior_critique, preprocessed_advice, notes } = body;
 
     // Get the current highest version number for this entry
     const { data: existingVersions, error: versionError } = await supabaseAdmin
@@ -48,16 +48,27 @@ export async function POST(
       ? existingVersions[0].version_number + 1 
       : 2; // Start from version 2 since original entry is version 1
 
+    // Prepare the version data, only including fields that exist
+    const versionData: Record<string, unknown> = {
+      entry_id: id,
+      version_number: nextVersionNumber,
+      image_url,
+      image_path,
+      advice,
+      notes
+    };
+
+    // Add optional fields only if they exist
+    if (senior_critique) {
+      versionData.senior_critique = senior_critique;
+    }
+    if (preprocessed_advice) {
+      versionData.preprocessed_advice = preprocessed_advice;
+    }
+
     const { data, error } = await supabaseAdmin
       .from('design_versions')
-      .insert([{
-        entry_id: id,
-        version_number: nextVersionNumber,
-        image_url,
-        image_path,
-        advice,
-        notes
-      }])
+      .insert([versionData])
       .select()
       .single();
 

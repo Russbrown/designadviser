@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { analyzeDesignVersion } from '@/lib/openai';
+import { analyzeDesignVersion, generateSeniorCritiqueVersion, preprocessImage, generatePreprocessedAdvice } from '@/lib/openai';
 
 export async function POST(request: NextRequest) {
   try {
@@ -7,7 +7,8 @@ export async function POST(request: NextRequest) {
     const { 
       newImageUrl, 
       previousImageUrl, 
-      previousAdvice, 
+      previousAdvice,
+      previousSeniorCritique, 
       context, 
       inquiries, 
       versionNotes,
@@ -22,18 +23,40 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Call OpenAI for version comparison analysis
-    const advice = await analyzeDesignVersion({
-      newImageUrl,
-      previousImageUrl,
-      previousAdvice: previousAdvice || '',
-      context: context || '',
-      inquiries: inquiries || '',
-      versionNotes: versionNotes || '',
-      globalSettings: globalSettings || '',
-    });
+    // First, preprocess the new image to extract structured data
+    const preprocessedData = await preprocessImage({ imageUrl: newImageUrl });
 
-    return NextResponse.json({ advice });
+    // Generate all three types of analysis for the version
+    const [advice, seniorCritique, preprocessedAdvice] = await Promise.all([
+      analyzeDesignVersion({
+        newImageUrl,
+        previousImageUrl,
+        previousAdvice: previousAdvice || '',
+        context: context || '',
+        inquiries: inquiries || '',
+        versionNotes: versionNotes || '',
+        globalSettings: globalSettings || '',
+      }),
+      generateSeniorCritiqueVersion({
+        newImageUrl,
+        previousImageUrl,
+        previousAdvice: previousAdvice || '',
+        previousSeniorCritique: previousSeniorCritique || '',
+        context: context || '',
+        inquiries: inquiries || '',
+        versionNotes: versionNotes || '',
+        globalSettings: globalSettings || '',
+      }),
+      generatePreprocessedAdvice({
+        imageUrl: newImageUrl,
+        context: context || '',
+        inquiries: inquiries || '',
+        globalSettings: globalSettings || '',
+        preprocessedData,
+      })
+    ]);
+
+    return NextResponse.json({ advice, seniorCritique, preprocessedAdvice });
   } catch (error) {
     console.error('Version analysis API error:', error);
     

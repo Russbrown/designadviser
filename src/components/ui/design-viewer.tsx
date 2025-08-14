@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { ChevronLeft, ChevronRight, Clock, ArrowLeft, Trash2, Edit3, Check, X, ChevronDown } from 'lucide-react';
 import { MarkdownRenderer } from '@/components/ui/markdown-renderer';
-import { AdviceRating } from '@/components/ui/advice-rating';
+import { AdviceVoting } from '@/components/ui/advice-voting';
 
 interface DesignViewerProps {
   entry: DesignEntry;
@@ -24,7 +24,7 @@ export function DesignViewer({ entry, onBack, onNewVersion, onDelete, onNameUpda
   const [editedName, setEditedName] = useState(entry.name || '');
   const [previousVersionCount, setPreviousVersionCount] = useState(0);
   const [showContextDropdown, setShowContextDropdown] = useState(false);
-  const [activeTab, setActiveTab] = useState<'analysis' | 'critique'>('analysis');
+  const [activeTab, setActiveTab] = useState<'analysis' | 'critique' | 'preprocessed'>('analysis');
   
   // Combine original entry with versions for navigation
   // Original entry is always version 1, additional versions start from 2
@@ -35,6 +35,7 @@ export function DesignViewer({ entry, onBack, onNewVersion, onDelete, onNameUpda
       image_url: entry.image_url,
       advice: entry.advice,
       senior_critique: entry.senior_critique,
+      preprocessed_advice: entry.preprocessed_advice,
       version_number: 1,
       isOriginal: true,
     },
@@ -316,20 +317,11 @@ export function DesignViewer({ entry, onBack, onNewVersion, onDelete, onNameUpda
               className="max-w-full max-h-[350px] h-auto rounded-lg shadow-md object-contain mx-auto block"
             />
             
-            {/* Rating Section */}
-            {currentVersion.advice && (
-              <div className="pb-4 border-b">
-                <AdviceRating
-                  entryId={'isOriginal' in currentVersion ? entry.id : undefined}
-                  versionId={'isOriginal' in currentVersion ? undefined : currentVersion.id}
-                />
-              </div>
-            )}
-            
             {/* Advice Section with Tabs */}
             <div className="space-y-4">
-              {/* Tab Navigation */}
-              <div className="inline-flex space-x-1 bg-muted p-1 rounded-lg">
+              {/* Tab Navigation and Voting */}
+              <div className="flex items-center justify-between">
+                <div className="inline-flex space-x-1 bg-muted p-1 rounded-lg">
                 <button
                   onClick={() => setActiveTab('analysis')}
                   className={`px-3 py-2 text-sm font-medium rounded-md transition-colors ${
@@ -338,7 +330,7 @@ export function DesignViewer({ entry, onBack, onNewVersion, onDelete, onNameUpda
                       : 'text-muted-foreground hover:text-foreground'
                   }`}
                 >
-                  General Critique
+                  1 - General
                 </button>
                 <button
                   onClick={() => setActiveTab('critique')}
@@ -348,8 +340,27 @@ export function DesignViewer({ entry, onBack, onNewVersion, onDelete, onNameUpda
                       : 'text-muted-foreground hover:text-foreground'
                   }`}
                 >
-                  Senior Designer Critique
+                  2 - Senior Designer
                 </button>
+                <button
+                  onClick={() => setActiveTab('preprocessed')}
+                  className={`px-3 py-2 text-sm font-medium rounded-md transition-colors ${
+                    activeTab === 'preprocessed'
+                      ? 'bg-background text-foreground shadow-sm'
+                      : 'text-muted-foreground hover:text-foreground'
+                  }`}
+                >
+                  3 - Structured
+                </button>
+                </div>
+                
+                {/* Voting Section */}
+                {(currentVersion.advice || currentVersion.senior_critique || currentVersion.preprocessed_advice) && (
+                  <AdviceVoting
+                    entryId={'isOriginal' in currentVersion ? entry.id : undefined}
+                    versionId={'isOriginal' in currentVersion ? undefined : currentVersion.id}
+                  />
+                )}
               </div>
 
               {/* Tab Content */}
@@ -362,12 +373,20 @@ export function DesignViewer({ entry, onBack, onNewVersion, onDelete, onNameUpda
                       No general critique generated for this version yet.
                     </p>
                   )
-                ) : (
+                ) : activeTab === 'critique' ? (
                   currentVersion.senior_critique ? (
                     <MarkdownRenderer content={currentVersion.senior_critique} />
                   ) : (
                     <p className="text-muted-foreground italic">
                       No senior designer critique generated for this version yet.
+                    </p>
+                  )
+                ) : (
+                  currentVersion.preprocessed_advice ? (
+                    <MarkdownRenderer content={currentVersion.preprocessed_advice} />
+                  ) : (
+                    <p className="text-muted-foreground italic">
+                      No pre-processed analysis generated for this version yet.
                     </p>
                   )
                 )}

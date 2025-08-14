@@ -28,6 +28,8 @@ interface VersionCreationDialogProps {
     image_url: string | null;
     image_path: string | null;
     advice: string;
+    senior_critique?: string;
+    preprocessed_advice?: string;
     entry_id: string;
     notes: string | null;
   }) => void;
@@ -40,11 +42,12 @@ const generateVersionAdvice = async (
   newImageUrl: string, 
   previousImageUrl: string,
   previousAdvice: string,
+  previousSeniorCritique: string,
   context: string, 
   inquiries: string, 
   versionNotes: string,
   globalSettings: string
-): Promise<string> => {
+): Promise<{ advice: string; seniorCritique: string; preprocessedAdvice: string }> => {
   try {
     const response = await fetch('/api/analyze-version', {
       method: 'POST',
@@ -55,6 +58,7 @@ const generateVersionAdvice = async (
         newImageUrl,
         previousImageUrl,
         previousAdvice,
+        previousSeniorCritique,
         context,
         inquiries,
         versionNotes,
@@ -68,7 +72,11 @@ const generateVersionAdvice = async (
     }
 
     const data = await response.json();
-    return data.advice;
+    return { 
+      advice: data.advice, 
+      seniorCritique: data.seniorCritique, 
+      preprocessedAdvice: data.preprocessedAdvice 
+    };
   } catch (error) {
     console.error('Error generating version advice:', error);
     throw error;
@@ -125,15 +133,17 @@ export function VersionCreationDialog({
       
       const previousImageUrl = latestVersion ? latestVersion.image_url : entry.image_url;
       const previousAdvice = latestVersion ? latestVersion.advice : entry.advice;
+      const previousSeniorCritique = latestVersion ? latestVersion.senior_critique : entry.senior_critique;
       
       if (!previousImageUrl) {
         throw new Error('Previous design image not found');
       }
       
-      const advice = await generateVersionAdvice(
+      const { advice, seniorCritique, preprocessedAdvice } = await generateVersionAdvice(
         imageUrl,
         previousImageUrl,
         previousAdvice || '',
+        previousSeniorCritique || '',
         entry.context || '',
         entry.inquiries || '',
         notes,
@@ -150,6 +160,8 @@ export function VersionCreationDialog({
           image_url: imageUrl,
           image_path: imagePath,
           advice,
+          senior_critique: seniorCritique,
+          preprocessed_advice: preprocessedAdvice,
           notes: notes || null,
         }),
       });

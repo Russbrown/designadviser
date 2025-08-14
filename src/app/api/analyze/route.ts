@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { analyzeDesign, generateSeniorCritique } from '@/lib/openai';
+import { analyzeDesign, generateSeniorCritique, preprocessImage, generatePreprocessedAdvice } from '@/lib/openai';
 import { rateLimit, getRateLimitKey } from '@/lib/rate-limiter';
 
 export async function POST(request: NextRequest) {
@@ -37,8 +37,11 @@ export async function POST(request: NextRequest) {
     const sanitizedInquiries = typeof inquiries === 'string' ? inquiries.trim().substring(0, 2000) : '';
     const sanitizedGlobalSettings = typeof globalSettings === 'string' ? globalSettings.trim().substring(0, 5000) : '';
 
-    // Call OpenAI for both types of analysis
-    const [advice, seniorCritique] = await Promise.all([
+    // First, preprocess the image to extract structured data
+    const preprocessedData = await preprocessImage({ imageUrl });
+
+    // Then call OpenAI for all three types of analysis
+    const [advice, seniorCritique, preprocessedAdvice] = await Promise.all([
       analyzeDesign({
         imageUrl,
         context: sanitizedContext,
@@ -50,10 +53,17 @@ export async function POST(request: NextRequest) {
         context: sanitizedContext,
         inquiries: sanitizedInquiries,
         globalSettings: sanitizedGlobalSettings,
+      }),
+      generatePreprocessedAdvice({
+        imageUrl,
+        context: sanitizedContext,
+        inquiries: sanitizedInquiries,
+        globalSettings: sanitizedGlobalSettings,
+        preprocessedData,
       })
     ]);
 
-    return NextResponse.json({ advice, seniorCritique });
+    return NextResponse.json({ advice, seniorCritique, preprocessedAdvice });
   } catch (error) {
     console.error('Analysis API error:', error);
     

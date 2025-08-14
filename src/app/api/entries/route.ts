@@ -51,20 +51,30 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { name, image_url, image_path, context, inquiries, advice, senior_critique } = body;
+    const { name, image_url, image_path, context, inquiries, advice, senior_critique, preprocessed_advice } = body;
+
+    // Prepare the entry data, only including preprocessed_advice if it exists
+    const entryData: Record<string, unknown> = {
+      name,
+      image_url,
+      image_path,
+      context,
+      inquiries,
+      advice,
+      user_id: userId
+    };
+
+    // Add optional fields only if they exist
+    if (senior_critique) {
+      entryData.senior_critique = senior_critique;
+    }
+    if (preprocessed_advice) {
+      entryData.preprocessed_advice = preprocessed_advice;
+    }
 
     const { data, error } = await supabaseAdmin
       .from('design_entries')
-      .insert([{
-        name,
-        image_url,
-        image_path,
-        context,
-        inquiries,
-        advice,
-        senior_critique,
-        user_id: userId
-      }])
+      .insert([entryData])
       .select()
       .single();
 
