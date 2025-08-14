@@ -24,6 +24,7 @@ export function DesignViewer({ entry, onBack, onNewVersion, onDelete, onNameUpda
   const [editedName, setEditedName] = useState(entry.name || '');
   const [previousVersionCount, setPreviousVersionCount] = useState(0);
   const [showContextDropdown, setShowContextDropdown] = useState(false);
+  const [activeTab, setActiveTab] = useState<'analysis' | 'critique'>('analysis');
   
   // Combine original entry with versions for navigation
   // Original entry is always version 1, additional versions start from 2
@@ -33,6 +34,7 @@ export function DesignViewer({ entry, onBack, onNewVersion, onDelete, onNameUpda
       created_at: entry.created_at,
       image_url: entry.image_url,
       advice: entry.advice,
+      senior_critique: entry.senior_critique,
       version_number: 1,
       isOriginal: true,
     },
@@ -324,15 +326,52 @@ export function DesignViewer({ entry, onBack, onNewVersion, onDelete, onNameUpda
               </div>
             )}
             
-            {/* Advice Section */}
-            <div>
-              {currentVersion.advice ? (
-                <MarkdownRenderer content={currentVersion.advice} />
-              ) : (
-                <p className="text-muted-foreground italic">
-                  No advice generated for this version yet.
-                </p>
-              )}
+            {/* Advice Section with Tabs */}
+            <div className="space-y-4">
+              {/* Tab Navigation */}
+              <div className="inline-flex space-x-1 bg-muted p-1 rounded-lg">
+                <button
+                  onClick={() => setActiveTab('analysis')}
+                  className={`px-3 py-2 text-sm font-medium rounded-md transition-colors ${
+                    activeTab === 'analysis'
+                      ? 'bg-background text-foreground shadow-sm'
+                      : 'text-muted-foreground hover:text-foreground'
+                  }`}
+                >
+                  General Critique
+                </button>
+                <button
+                  onClick={() => setActiveTab('critique')}
+                  className={`px-3 py-2 text-sm font-medium rounded-md transition-colors ${
+                    activeTab === 'critique'
+                      ? 'bg-background text-foreground shadow-sm'
+                      : 'text-muted-foreground hover:text-foreground'
+                  }`}
+                >
+                  Senior Designer Critique
+                </button>
+              </div>
+
+              {/* Tab Content */}
+              <div>
+                {activeTab === 'analysis' ? (
+                  currentVersion.advice ? (
+                    <MarkdownRenderer content={currentVersion.advice} />
+                  ) : (
+                    <p className="text-muted-foreground italic">
+                      No general critique generated for this version yet.
+                    </p>
+                  )
+                ) : (
+                  currentVersion.senior_critique ? (
+                    <MarkdownRenderer content={currentVersion.senior_critique} />
+                  ) : (
+                    <p className="text-muted-foreground italic">
+                      No senior designer critique generated for this version yet.
+                    </p>
+                  )
+                )}
+              </div>
             </div>
           </CardContent>
         </Card>

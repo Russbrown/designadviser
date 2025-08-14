@@ -12,6 +12,7 @@ interface AuthContextType {
   signUp: (email: string, password: string) => Promise<{ error?: Error | null }>;
   signIn: (email: string, password: string) => Promise<{ error?: Error | null }>;
   signOut: () => Promise<void>;
+  resendVerification: (email: string) => Promise<{ error?: Error | null }>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -68,6 +69,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const { error } = await supabase.auth.signUp({
         email,
         password,
+        options: {
+          emailRedirectTo: process.env.NEXT_PUBLIC_SITE_URL || 'https://designadviser.vercel.app',
+        },
       });
       return { error };
     } catch (error) {
@@ -99,6 +103,22 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
+  const resendVerification = async (email: string) => {
+    try {
+      const { error } = await supabase.auth.resend({
+        type: 'signup',
+        email,
+        options: {
+          emailRedirectTo: process.env.NEXT_PUBLIC_SITE_URL || 'https://designadviser.vercel.app',
+        },
+      });
+      return { error };
+    } catch (error) {
+      console.error('Error resending verification:', error);
+      return { error: error instanceof Error ? error : new Error('Resend failed') };
+    }
+  };
+
   const value = {
     user,
     session,
@@ -106,6 +126,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     signUp,
     signIn,
     signOut,
+    resendVerification,
   };
 
   return (

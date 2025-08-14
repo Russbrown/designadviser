@@ -7,6 +7,7 @@ export interface DesignEntry {
   context: string | null;
   inquiries: string | null;
   advice: string;
+  senior_critique?: string;
   user_id?: string | null;
   design_versions?: DesignVersion[];
 }
@@ -18,6 +19,7 @@ export interface DesignVersion {
   image_url: string | null;
   image_path: string | null;
   advice: string;
+  senior_critique?: string;
   entry_id: string;
   notes: string | null;
 }

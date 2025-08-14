@@ -51,7 +51,7 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { name, image_url, image_path, context, inquiries, advice } = body;
+    const { name, image_url, image_path, context, inquiries, advice, senior_critique } = body;
 
     const { data, error } = await supabaseAdmin
       .from('design_entries')
@@ -62,6 +62,7 @@ export async function POST(request: NextRequest) {
         context,
         inquiries,
         advice,
+        senior_critique,
         user_id: userId
       }])
       .select()
