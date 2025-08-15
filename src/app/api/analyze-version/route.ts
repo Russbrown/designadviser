@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { analyzeDesignVersion, generateSeniorCritiqueVersion, generateMiniAdviceVersion } from '@/lib/openai';
+import { analyzeDesignVersion, generateSeniorCritiqueVersion } from '@/lib/openai';
 import { FEATURES } from '@/lib/environment';
 
 export async function POST(request: NextRequest) {
@@ -25,8 +25,8 @@ export async function POST(request: NextRequest) {
     }
 
     if (FEATURES.GENERATE_MULTIPLE_ADVICE) {
-      // Development: Generate all three types of analysis for the version
-      const [advice, seniorCritique, miniAdvice] = await Promise.all([
+      // Development: Generate both types of analysis for the version
+      const [advice, seniorCritique] = await Promise.all([
         analyzeDesignVersion({
           newImageUrl,
           previousImageUrl,
@@ -45,19 +45,10 @@ export async function POST(request: NextRequest) {
           inquiries: inquiries || '',
           versionNotes: versionNotes || '',
           globalSettings: globalSettings || '',
-        }),
-        generateMiniAdviceVersion({
-          newImageUrl,
-          previousImageUrl,
-          previousAdvice: previousAdvice || '',
-          context: context || '',
-          inquiries: inquiries || '',
-          versionNotes: versionNotes || '',
-          globalSettings: globalSettings || '',
         })
       ]);
 
-      return NextResponse.json({ advice, seniorCritique, miniAdvice });
+      return NextResponse.json({ advice, seniorCritique, miniAdvice: null });
     } else {
       // Production: Only generate general version analysis
       const advice = await analyzeDesignVersion({

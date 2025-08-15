@@ -25,7 +25,7 @@ export function DesignViewer({ entry, onBack, onNewVersion, onDelete, onNameUpda
   const [editedName, setEditedName] = useState(entry.name || '');
   const [previousVersionCount, setPreviousVersionCount] = useState(0);
   const [showContextDropdown, setShowContextDropdown] = useState(false);
-  const [activeTab, setActiveTab] = useState<'analysis' | 'critique' | 'mini'>('analysis');
+  const [activeTab, setActiveTab] = useState<'analysis' | 'critique'>('analysis');
   
   // Combine original entry with versions for navigation
   // Original entry is always version 1, additional versions start from 2
@@ -36,7 +36,6 @@ export function DesignViewer({ entry, onBack, onNewVersion, onDelete, onNameUpda
       image_url: entry.image_url,
       advice: entry.advice,
       senior_critique: entry.senior_critique,
-      mini_advice: entry.mini_advice,
       preprocessed_advice: entry.preprocessed_advice,
       version_number: 1,
       isOriginal: true,
@@ -346,16 +345,6 @@ export function DesignViewer({ entry, onBack, onNewVersion, onDelete, onNameUpda
                     >
                       2 - Senior Designer
                     </button>
-                    <button
-                      onClick={() => setActiveTab('mini')}
-                      className={`px-3 py-2 text-sm font-medium rounded-md transition-colors ${
-                        activeTab === 'mini'
-                          ? 'bg-background text-foreground shadow-sm'
-                          : 'text-muted-foreground hover:text-foreground'
-                      }`}
-                    >
-                      3 - o3-pro
-                    </button>
                   </div>
                   
                   {/* Voting Section - Only in development */}
@@ -380,20 +369,12 @@ export function DesignViewer({ entry, onBack, onNewVersion, onDelete, onNameUpda
                         No general critique generated for this version yet.
                       </p>
                     )
-                  ) : activeTab === 'critique' ? (
+                  ) : (
                     currentVersion.senior_critique ? (
                       <MarkdownRenderer content={currentVersion.senior_critique} />
                     ) : (
                       <p className="text-muted-foreground italic">
                         No senior designer critique generated for this version yet.
-                      </p>
-                    )
-                  ) : (
-                    currentVersion.mini_advice ? (
-                      <MarkdownRenderer content={currentVersion.mini_advice} />
-                    ) : (
-                      <p className="text-muted-foreground italic">
-                        No o3-pro analysis generated for this version yet.
                       </p>
                     )
                   )

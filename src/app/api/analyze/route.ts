@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { analyzeDesign, generateSeniorCritique, generateMiniAdvice } from '@/lib/openai';
+import { analyzeDesign, generateSeniorCritique } from '@/lib/openai';
 import { rateLimit, getRateLimitKey } from '@/lib/rate-limiter';
 import { FEATURES } from '@/lib/environment';
 
@@ -39,8 +39,8 @@ export async function POST(request: NextRequest) {
     const sanitizedGlobalSettings = typeof globalSettings === 'string' ? globalSettings.trim().substring(0, 5000) : '';
 
     if (FEATURES.GENERATE_MULTIPLE_ADVICE) {
-      // Development: Generate all three types of analysis
-      const [advice, seniorCritique, miniAdvice] = await Promise.all([
+      // Development: Generate both types of analysis
+      const [advice, seniorCritique] = await Promise.all([
         analyzeDesign({
           imageUrl,
           context: sanitizedContext,
@@ -52,16 +52,10 @@ export async function POST(request: NextRequest) {
           context: sanitizedContext,
           inquiries: sanitizedInquiries,
           globalSettings: sanitizedGlobalSettings,
-        }),
-        generateMiniAdvice({
-          imageUrl,
-          context: sanitizedContext,
-          inquiries: sanitizedInquiries,
-          globalSettings: sanitizedGlobalSettings,
         })
       ]);
 
-      return NextResponse.json({ advice, seniorCritique, miniAdvice });
+      return NextResponse.json({ advice, seniorCritique, miniAdvice: null });
     } else {
       // Production: Only generate general advice
       const advice = await analyzeDesign({
