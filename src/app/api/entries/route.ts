@@ -86,7 +86,6 @@ export async function POST(request: NextRequest) {
     return NextResponse.json(data);
   } catch (error) {
     console.error('Error creating entry:', error);
-    console.error('Entry data being inserted:', entryData);
     return NextResponse.json(
       { error: 'Failed to create entry', details: error instanceof Error ? error.message : 'Unknown error' },
       { status: 500 }

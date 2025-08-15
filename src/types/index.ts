@@ -8,6 +8,7 @@ export interface DesignEntry {
   inquiries: string | null;
   advice: string;
   senior_critique?: string;
+  mini_advice?: string;
   preprocessed_advice?: string;
   user_id?: string | null;
   design_versions?: DesignVersion[];
@@ -21,6 +22,7 @@ export interface DesignVersion {
   image_path: string | null;
   advice: string;
   senior_critique?: string;
+  mini_advice?: string;
   preprocessed_advice?: string;
   entry_id: string;
   notes: string | null;
