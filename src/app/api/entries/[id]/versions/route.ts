@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase';
+import { FEATURES } from '@/lib/environment';
 
 export async function GET(
   request: NextRequest,
@@ -32,7 +33,7 @@ export async function POST(
   try {
     const { id } = await params;
     const body = await request.json();
-    const { image_url, image_path, advice, senior_critique, notes } = body;
+    const { image_url, image_path, advice, senior_critique, mini_advice, notes } = body;
 
     // Get the current highest version number for this entry
     const { data: existingVersions, error: versionError } = await supabaseAdmin
@@ -58,9 +59,12 @@ export async function POST(
       notes
     };
 
-    // Add optional fields only if they exist
-    if (senior_critique) {
+    // Add optional fields only if they exist and features are enabled
+    if (senior_critique && FEATURES.GENERATE_MULTIPLE_ADVICE) {
       versionData.senior_critique = senior_critique;
+    }
+    if (mini_advice && FEATURES.GENERATE_MULTIPLE_ADVICE) {
+      versionData.mini_advice = mini_advice;
     }
 
     const { data, error } = await supabaseAdmin

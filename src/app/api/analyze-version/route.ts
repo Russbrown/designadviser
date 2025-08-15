@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { analyzeDesignVersion, generateSeniorCritiqueVersion } from '@/lib/openai';
+import { analyzeDesignVersion, generateSeniorCritiqueVersion, generateMiniAdviceVersion } from '@/lib/openai';
+import { FEATURES } from '@/lib/environment';
 
 export async function POST(request: NextRequest) {
   try {
@@ -23,30 +24,58 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Generate both types of analysis for the version
-    const [advice, seniorCritique] = await Promise.all([
-      analyzeDesignVersion({
-        newImageUrl,
-        previousImageUrl,
-        previousAdvice: previousAdvice || '',
-        context: context || '',
-        inquiries: inquiries || '',
-        versionNotes: versionNotes || '',
-        globalSettings: globalSettings || '',
-      }),
-      generateSeniorCritiqueVersion({
-        newImageUrl,
-        previousImageUrl,
-        previousAdvice: previousAdvice || '',
-        previousSeniorCritique: previousSeniorCritique || '',
-        context: context || '',
-        inquiries: inquiries || '',
-        versionNotes: versionNotes || '',
-        globalSettings: globalSettings || '',
-      })
-    ]);
+    if (FEATURES.GENERATE_MULTIPLE_ADVICE) {
+      // Development: Generate all three types of analysis for the version
+      const [advice, seniorCritique, miniAdvice] = await Promise.all([
+        analyzeDesignVersion({
+          newImageUrl,
+          previousImageUrl,
+          previousAdvice: previousAdvice || '',
+          context: context || '',
+          inquiries: inquiries || '',
+          versionNotes: versionNotes || '',
+          globalSettings: globalSettings || '',
+        }),
+        generateSeniorCritiqueVersion({
+          newImageUrl,
+          previousImageUrl,
+          previousAdvice: previousAdvice || '',
+          previousSeniorCritique: previousSeniorCritique || '',
+          context: context || '',
+          inquiries: inquiries || '',
+          versionNotes: versionNotes || '',
+          globalSettings: globalSettings || '',
+        }),
+        generateMiniAdviceVersion({
+          newImageUrl,
+          previousImageUrl,
+          previousAdvice: previousAdvice || '',
+          context: context || '',
+          inquiries: inquiries || '',
+          versionNotes: versionNotes || '',
+          globalSettings: globalSettings || '',
+        })
+      ]);
 
-    return NextResponse.json({ advice, seniorCritique });
+      return NextResponse.json({ advice, seniorCritique, miniAdvice });
+    } else {
+      // Production: Only generate general version analysis
+      const advice = await analyzeDesignVersion({
+        newImageUrl,
+        previousImageUrl,
+        previousAdvice: previousAdvice || '',
+        context: context || '',
+        inquiries: inquiries || '',
+        versionNotes: versionNotes || '',
+        globalSettings: globalSettings || '',
+      });
+
+      return NextResponse.json({ 
+        advice, 
+        seniorCritique: null, 
+        miniAdvice: null 
+      });
+    }
   } catch (error) {
     console.error('Version analysis API error:', error);
     

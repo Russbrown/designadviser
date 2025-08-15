@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { analyzeDesign, generateSeniorCritique } from '@/lib/openai';
+import { analyzeDesign, generateSeniorCritique, generateMiniAdvice } from '@/lib/openai';
 import { rateLimit, getRateLimitKey } from '@/lib/rate-limiter';
+import { FEATURES } from '@/lib/environment';
 
 export async function POST(request: NextRequest) {
   try {
@@ -37,23 +38,45 @@ export async function POST(request: NextRequest) {
     const sanitizedInquiries = typeof inquiries === 'string' ? inquiries.trim().substring(0, 2000) : '';
     const sanitizedGlobalSettings = typeof globalSettings === 'string' ? globalSettings.trim().substring(0, 5000) : '';
 
-    // Call OpenAI for both types of analysis
-    const [advice, seniorCritique] = await Promise.all([
-      analyzeDesign({
-        imageUrl,
-        context: sanitizedContext,
-        inquiries: sanitizedInquiries,
-        globalSettings: sanitizedGlobalSettings,
-      }),
-      generateSeniorCritique({
-        imageUrl,
-        context: sanitizedContext,
-        inquiries: sanitizedInquiries,
-        globalSettings: sanitizedGlobalSettings,
-      })
-    ]);
+    if (FEATURES.GENERATE_MULTIPLE_ADVICE) {
+      // Development: Generate all three types of analysis
+      const [advice, seniorCritique, miniAdvice] = await Promise.all([
+        analyzeDesign({
+          imageUrl,
+          context: sanitizedContext,
+          inquiries: sanitizedInquiries,
+          globalSettings: sanitizedGlobalSettings,
+        }),
+        generateSeniorCritique({
+          imageUrl,
+          context: sanitizedContext,
+          inquiries: sanitizedInquiries,
+          globalSettings: sanitizedGlobalSettings,
+        }),
+        generateMiniAdvice({
+          imageUrl,
+          context: sanitizedContext,
+          inquiries: sanitizedInquiries,
+          globalSettings: sanitizedGlobalSettings,
+        })
+      ]);
 
-    return NextResponse.json({ advice, seniorCritique });
+      return NextResponse.json({ advice, seniorCritique, miniAdvice });
+    } else {
+      // Production: Only generate general advice
+      const advice = await analyzeDesign({
+        imageUrl,
+        context: sanitizedContext,
+        inquiries: sanitizedInquiries,
+        globalSettings: sanitizedGlobalSettings,
+      });
+
+      return NextResponse.json({ 
+        advice, 
+        seniorCritique: null, 
+        miniAdvice: null 
+      });
+    }
   } catch (error) {
     console.error('Analysis API error:', error);
     

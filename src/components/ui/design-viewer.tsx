@@ -8,6 +8,7 @@ import { Input } from '@/components/ui/input';
 import { ChevronLeft, ChevronRight, Clock, ArrowLeft, Trash2, Edit3, Check, X, ChevronDown } from 'lucide-react';
 import { MarkdownRenderer } from '@/components/ui/markdown-renderer';
 import { AdviceVoting } from '@/components/ui/advice-voting';
+import { FEATURES } from '@/lib/environment';
 
 interface DesignViewerProps {
   entry: DesignEntry;
@@ -24,7 +25,7 @@ export function DesignViewer({ entry, onBack, onNewVersion, onDelete, onNameUpda
   const [editedName, setEditedName] = useState(entry.name || '');
   const [previousVersionCount, setPreviousVersionCount] = useState(0);
   const [showContextDropdown, setShowContextDropdown] = useState(false);
-  const [activeTab, setActiveTab] = useState<'analysis' | 'critique'>('analysis');
+  const [activeTab, setActiveTab] = useState<'analysis' | 'critique' | 'mini'>('analysis');
   
   // Combine original entry with versions for navigation
   // Original entry is always version 1, additional versions start from 2
@@ -35,6 +36,7 @@ export function DesignViewer({ entry, onBack, onNewVersion, onDelete, onNameUpda
       image_url: entry.image_url,
       advice: entry.advice,
       senior_critique: entry.senior_critique,
+      mini_advice: entry.mini_advice,
       preprocessed_advice: entry.preprocessed_advice,
       version_number: 1,
       isOriginal: true,
@@ -321,31 +323,51 @@ export function DesignViewer({ entry, onBack, onNewVersion, onDelete, onNameUpda
             <div className="space-y-4">
               {/* Tab Navigation and Voting */}
               <div className="flex items-center justify-between">
-                <div className="inline-flex space-x-1 bg-muted p-1 rounded-lg">
-                <button
-                  onClick={() => setActiveTab('analysis')}
-                  className={`px-3 py-2 text-sm font-medium rounded-md transition-colors ${
-                    activeTab === 'analysis'
-                      ? 'bg-background text-foreground shadow-sm'
-                      : 'text-muted-foreground hover:text-foreground'
-                  }`}
-                >
-                  1 - General
-                </button>
-                <button
-                  onClick={() => setActiveTab('critique')}
-                  className={`px-3 py-2 text-sm font-medium rounded-md transition-colors ${
-                    activeTab === 'critique'
-                      ? 'bg-background text-foreground shadow-sm'
-                      : 'text-muted-foreground hover:text-foreground'
-                  }`}
-                >
-                  2 - Senior Designer
-                </button>
-                </div>
+                {FEATURES.SHOW_ALL_ADVICE_TABS ? (
+                  // Development: Show all tabs
+                  <div className="inline-flex space-x-1 bg-muted p-1 rounded-lg">
+                    <button
+                      onClick={() => setActiveTab('analysis')}
+                      className={`px-3 py-2 text-sm font-medium rounded-md transition-colors ${
+                        activeTab === 'analysis'
+                          ? 'bg-background text-foreground shadow-sm'
+                          : 'text-muted-foreground hover:text-foreground'
+                      }`}
+                    >
+                      1 - General
+                    </button>
+                    <button
+                      onClick={() => setActiveTab('critique')}
+                      className={`px-3 py-2 text-sm font-medium rounded-md transition-colors ${
+                        activeTab === 'critique'
+                          ? 'bg-background text-foreground shadow-sm'
+                          : 'text-muted-foreground hover:text-foreground'
+                      }`}
+                    >
+                      2 - Senior Designer
+                    </button>
+                    <button
+                      onClick={() => setActiveTab('mini')}
+                      className={`px-3 py-2 text-sm font-medium rounded-md transition-colors ${
+                        activeTab === 'mini'
+                          ? 'bg-background text-foreground shadow-sm'
+                          : 'text-muted-foreground hover:text-foreground'
+                      }`}
+                    >
+                      3 - GPT-4o-mini
+                    </button>
+                  </div>
+                ) : (
+                  // Production: Only show General tab label
+                  <div className="inline-flex space-x-1 bg-muted p-1 rounded-lg">
+                    <div className="px-3 py-2 text-sm font-medium rounded-md bg-background text-foreground shadow-sm">
+                      AI Analysis
+                    </div>
+                  </div>
+                )}
                 
-                {/* Voting Section */}
-                {(currentVersion.advice || currentVersion.senior_critique) && (
+                {/* Voting Section - Only in development */}
+                {FEATURES.SHOW_ADVICE_VOTING && (currentVersion.advice || currentVersion.senior_critique) && (
                   <AdviceVoting
                     entryId={'isOriginal' in currentVersion ? entry.id : undefined}
                     versionId={'isOriginal' in currentVersion ? undefined : currentVersion.id}
@@ -355,20 +377,40 @@ export function DesignViewer({ entry, onBack, onNewVersion, onDelete, onNameUpda
 
               {/* Tab Content */}
               <div>
-                {activeTab === 'analysis' ? (
+                {FEATURES.SHOW_ALL_ADVICE_TABS ? (
+                  // Development: Show content based on active tab
+                  activeTab === 'analysis' ? (
+                    currentVersion.advice ? (
+                      <MarkdownRenderer content={currentVersion.advice} />
+                    ) : (
+                      <p className="text-muted-foreground italic">
+                        No general critique generated for this version yet.
+                      </p>
+                    )
+                  ) : activeTab === 'critique' ? (
+                    currentVersion.senior_critique ? (
+                      <MarkdownRenderer content={currentVersion.senior_critique} />
+                    ) : (
+                      <p className="text-muted-foreground italic">
+                        No senior designer critique generated for this version yet.
+                      </p>
+                    )
+                  ) : (
+                    currentVersion.mini_advice ? (
+                      <MarkdownRenderer content={currentVersion.mini_advice} />
+                    ) : (
+                      <p className="text-muted-foreground italic">
+                        No GPT-4o-mini analysis generated for this version yet.
+                      </p>
+                    )
+                  )
+                ) : (
+                  // Production: Only show general advice
                   currentVersion.advice ? (
                     <MarkdownRenderer content={currentVersion.advice} />
                   ) : (
                     <p className="text-muted-foreground italic">
-                      No general critique generated for this version yet.
-                    </p>
-                  )
-                ) : (
-                  currentVersion.senior_critique ? (
-                    <MarkdownRenderer content={currentVersion.senior_critique} />
-                  ) : (
-                    <p className="text-muted-foreground italic">
-                      No senior designer critique generated for this version yet.
+                      No AI analysis generated for this version yet.
                     </p>
                   )
                 )}

@@ -1,4 +1,7 @@
 import OpenAI from 'openai';
+import { GENERAL_ANALYSIS_PROMPT } from './prompts/general-analysis';
+import { SENIOR_CRITIQUE_PROMPT } from './prompts/senior-critique';
+import { MINI_ANALYSIS_PROMPT } from './prompts/mini-analysis';
 
 // Initialize OpenAI only if API key is available (not during build time)
 const openai = process.env.OPENAI_API_KEY 
@@ -43,29 +46,9 @@ export async function analyzeDesign({
     if (!openai) {
       throw new Error('OPENAI_API_KEY is required in environment variables');
     }
-    // Use only the globalSettings as the system prompt
-    const systemPrompt = globalSettings || '';
-
-    // User context and inquiries only
-    const userContext = [];
-    if (context) {
-      userContext.push(`Context: ${context}`);
-    }
-    if (inquiries) {
-      userContext.push(`Questions: ${inquiries}`);
-    }
-    
-    // Add formatting instructions
-    userContext.push('');
-    userContext.push('Focus on providing actionable, specific design advice that addresses any problems mentioned.');
-    userContext.push('');
-    userContext.push('Please provide your design analysis using proper markdown formatting with:');
-    userContext.push('- Clear headings (## for main sections)'); 
-    userContext.push('- Bullet points for lists');
-    userContext.push('- **Bold** for important points');
-    userContext.push('- Keep bullet points concise and readable');
-    
-    const userPrompt = userContext.length > 0 ? userContext.join('\n\n') : '';
+    // Use general analysis prompts
+    const systemPrompt = GENERAL_ANALYSIS_PROMPT.system(globalSettings);
+    const userPrompt = GENERAL_ANALYSIS_PROMPT.user(context, inquiries);
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const messages: any[] = [];
@@ -159,44 +142,9 @@ export async function analyzeDesignVersion({
       throw new Error('OPENAI_API_KEY is required in environment variables');
     }
 
-    // Build the system prompt with comparison context
-    const systemPrompt = globalSettings ? 
-      `${globalSettings}\n\nYou are analyzing a new version of a design. Focus on comparing the changes between the previous and current versions, and provide specific, actionable advice based on the improvements or areas that need attention. Always keep the original design problem in mind and assess how well each version addresses that core challenge.` :
-      'You are analyzing a new version of a design. Compare the changes between the previous and current versions, and provide specific, actionable advice based on the improvements or areas that need attention. Always keep the original design problem in mind and assess how well each version addresses that core challenge.';
-
-    // Build user context for version comparison
-    const userContext = [];
-    if (inquiries) {
-      userContext.push(`ORIGINAL DESIGN PROBLEM: ${inquiries}`);
-      userContext.push('↳ This is the core design challenge that needs to be addressed throughout all versions.');
-    }
-    if (context) {
-      userContext.push(`Original Context: ${context}`);
-    }
-    if (versionNotes) {
-      userContext.push(`Changes Made in This Version: ${versionNotes}`);
-    }
-    if (previousAdvice) {
-      userContext.push(`Previous Design Analysis: ${previousAdvice}`);
-    }
-    
-    userContext.push('Please analyze both designs and provide specific feedback on:');
-    userContext.push('1. What improvements have been made since the previous version');
-    userContext.push('2. Areas where the design has progressed well');
-    userContext.push('3. How well this version addresses the ORIGINAL DESIGN PROBLEM stated above');
-    userContext.push('4. New issues or opportunities for improvement in this version');
-    userContext.push('5. How well the changes address any issues mentioned in the previous analysis');
-    userContext.push('6. Specific actionable recommendations for the next iteration that keep the original design problem in mind');
-    userContext.push('');
-    userContext.push('Structure your response with clear sections and be specific about visual changes you can observe.');
-    userContext.push('');
-    userContext.push('Format your response using proper markdown with:');
-    userContext.push('- Clear headings (## for main sections)');
-    userContext.push('- Bullet points for lists');
-    userContext.push('- **Bold** for important points');
-    userContext.push('- Keep bullet points concise and on single lines when possible');
-    
-    const userPrompt = userContext.join('\n\n');
+    // Use general analysis version comparison prompts
+    const systemPrompt = GENERAL_ANALYSIS_PROMPT.versionSystem(globalSettings);
+    const userPrompt = GENERAL_ANALYSIS_PROMPT.versionUser(context, inquiries, versionNotes, previousAdvice);
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const messages: any[] = [];
@@ -303,60 +251,9 @@ export async function generateSeniorCritique({
       throw new Error('OPENAI_API_KEY is required in environment variables');
     }
 
-    // Senior Designer Critique System Prompt
-    const systemPrompt = `Role & Persona
-You are a highly experienced product designer with over 15 years of expertise in UX, UI, and product strategy, having worked at world-class companies such as Airbnb, Stripe, and Figma.
-You are a trusted mentor whose feedback is smart, nuanced, and actionable. You assume the designer already understands the fundamentals and is looking for high-leverage insights and strategic improvements.
-
-Tone & Style
-Confident, clear, and collaborative.
-Speak as if to a peer, not a student.
-Avoid obvious beginner-level tips unless they are critical.
-Encourage good thinking — explain why something matters, not just what to change.
-Where relevant, draw parallels to real products and industry best practices.
-
-Critique Approach
-When giving feedback, focus on:
-Clarity & Communication – Does the design clearly communicate its purpose and value?
-Hierarchy & Flow – Is visual and information hierarchy clear and intentional?
-Usability & Accessibility – Are interactions smooth, intuitive, and inclusive?
-Visual Craft – Typography, spacing, rhythm, and polish.
-Strategic Fit – Does the design align with the product's goals, audience, and brand?
-
-Output Format
-Structure your feedback in four sections:
-Overall Impression – A concise read on the design's strengths and intent.
-High-Impact Opportunities – 2–4 areas that, if improved, would create the biggest jump in quality or performance.
-Refinements & Nuance – Subtle adjustments to elevate the craft and feel.
-Comparable Patterns or Inspiration – Real-world examples, patterns, or principles worth exploring.
-
-Rules
-Avoid generic filler advice like "use more whitespace" or "make the font bigger" unless it's crucial to the outcome.
-If recommending a change, explain the rationale and any trade-offs.
-Balance critique with acknowledgment of what works well.
-If information is missing (e.g., target audience), call that out before making assumptions.`;
-
-    // User context and inquiries
-    const userContext = [];
-    if (context) {
-      userContext.push(`Context: ${context}`);
-    }
-    if (inquiries) {
-      userContext.push(`Questions: ${inquiries}`);
-    }
-    if (globalSettings) {
-      userContext.push(`Additional Context: ${globalSettings}`);
-    }
-    
-    // Add formatting instructions
-    userContext.push('');
-    userContext.push('Please provide your senior designer critique using proper markdown formatting with:');
-    userContext.push('- Clear headings (## for main sections)'); 
-    userContext.push('- Bullet points for lists');
-    userContext.push('- **Bold** for important points');
-    userContext.push('- Keep feedback actionable and strategic');
-    
-    const userPrompt = userContext.length > 0 ? userContext.join('\n\n') : 'Please provide a senior designer critique of this design.';
+    // Use senior critique prompts
+    const systemPrompt = SENIOR_CRITIQUE_PROMPT.system;
+    const userPrompt = SENIOR_CRITIQUE_PROMPT.user(context, inquiries, globalSettings);
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const messages: any[] = [];
@@ -446,67 +343,9 @@ export async function generateSeniorCritiqueVersion({
       throw new Error('OPENAI_API_KEY is required in environment variables');
     }
 
-    // Senior Designer Critique System Prompt for version comparison
-    const systemPrompt = `Role & Persona
-You are a highly experienced product designer with over 15 years of expertise in UX, UI, and product strategy, having worked at world-class companies such as Airbnb, Stripe, and Figma.
-You are a trusted mentor whose feedback is smart, nuanced, and actionable. You assume the designer already understands the fundamentals and is looking for high-leverage insights and strategic improvements.
-
-You are analyzing a new version of a design. Focus on comparing the changes between the previous and current versions, and provide specific, actionable senior-level advice based on the improvements or areas that need attention.
-
-Tone & Style
-Confident, clear, and collaborative.
-Speak as if to a peer, not a student.
-Avoid obvious beginner-level tips unless they are critical.
-Encourage good thinking — explain why something matters, not just what to change.
-Where relevant, draw parallels to real products and industry best practices.
-
-Output Format
-Structure your feedback in four sections:
-Evolution Assessment – How has the design evolved from the previous version?
-Strategic Improvements – What high-impact changes have strengthened the design?
-Refinement Opportunities – Areas where the new version could be further elevated?
-Next-Level Considerations – Strategic recommendations for future iterations.
-
-Rules
-Focus on design evolution and strategic improvements rather than basic fixes.
-Compare the versions thoughtfully and acknowledge good progress.
-Provide actionable, high-leverage feedback for the next iteration.`;
-
-    // Build user context for version comparison
-    const userContext = [];
-    if (inquiries) {
-      userContext.push(`ORIGINAL DESIGN PROBLEM: ${inquiries}`);
-      userContext.push('↳ This is the core design challenge that needs to be addressed throughout all versions.');
-    }
-    if (context) {
-      userContext.push(`Original Context: ${context}`);
-    }
-    if (versionNotes) {
-      userContext.push(`Changes Made in This Version: ${versionNotes}`);
-    }
-    if (previousSeniorCritique) {
-      userContext.push(`Previous Senior Critique: ${previousSeniorCritique}`);
-    }
-    if (globalSettings) {
-      userContext.push(`Additional Context: ${globalSettings}`);
-    }
-    
-    userContext.push('Please provide a senior designer critique comparing these two versions:');
-    userContext.push('1. What strategic improvements have been made');
-    userContext.push('2. How well the evolution addresses the original design problem');
-    userContext.push('3. Areas where the design thinking has matured');
-    userContext.push('4. High-impact opportunities for the next iteration');
-    userContext.push('5. How well changes address previous senior-level feedback');
-    userContext.push('');
-    userContext.push('Structure your response with clear sections and focus on strategic design decisions.');
-    userContext.push('');
-    userContext.push('Format your response using proper markdown with:');
-    userContext.push('- Clear headings (## for main sections)');
-    userContext.push('- Bullet points for lists');
-    userContext.push('- **Bold** for important points');
-    userContext.push('- Keep feedback actionable and strategic');
-    
-    const userPrompt = userContext.join('\n\n');
+    // Use senior critique version comparison prompts
+    const systemPrompt = SENIOR_CRITIQUE_PROMPT.versionSystem;
+    const userPrompt = SENIOR_CRITIQUE_PROMPT.versionUser(context, inquiries, versionNotes, previousSeniorCritique, globalSettings);
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const messages: any[] = [];
@@ -964,5 +803,216 @@ export async function generateDesignName({
     
     // Return a fallback name instead of throwing
     return 'Design Entry';
+  }
+}
+
+// GPT-4o-mini analysis - faster and more cost-effective option
+export async function generateMiniAdvice({
+  imageUrl,
+  context,
+  inquiries,
+  globalSettings,
+}: DesignAnalysisRequest): Promise<string> {
+  try {
+    // Check if OpenAI is available
+    if (!openai) {
+      throw new Error('OPENAI_API_KEY is required in environment variables');
+    }
+
+    // Use mini analysis prompts
+    const systemPrompt = MINI_ANALYSIS_PROMPT.system(globalSettings);
+    const userPrompt = MINI_ANALYSIS_PROMPT.user(context, inquiries);
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const messages: any[] = [];
+    
+    // Add system message
+    messages.push({
+      role: 'system',
+      content: systemPrompt,
+    });
+    
+    // Add user message with image
+    messages.push({
+      role: 'user',
+      content: [
+        {
+          type: 'text',
+          text: userPrompt,
+        },
+        {
+          type: 'image_url',
+          image_url: {
+            url: imageUrl,
+            detail: 'low', // Use low detail for faster processing
+          },
+        },
+      ],
+    });
+
+    const response = await openai.chat.completions.create({
+      model: 'gpt-4o-mini', // Use the mini model specifically
+      messages,
+      max_tokens: 1500, // Shorter responses for faster processing
+      temperature: 0.7,
+    });
+
+    const content = response.choices[0]?.message?.content;
+    
+    if (!content) {
+      throw new Error('No content received from OpenAI API');
+    }
+
+    return content.trim();
+  } catch (error) {
+    console.error('OpenAI API error in mini analysis:', error);
+    
+    if (error instanceof Error) {
+      // Same error handling as other functions
+      if (error.message.includes('401') || error.message.includes('API key') || error.message.includes('Unauthorized')) {
+        throw new Error('Invalid OpenAI API key. Please check your API key in .env.local file.');
+      }
+      
+      if (error.message.includes('429') || error.message.includes('quota') || error.message.includes('rate limit')) {
+        throw new Error('OpenAI API rate limit exceeded. Please wait a moment and try again.');
+      }
+      
+      if (error.message.includes('400') || error.message.includes('Bad Request')) {
+        throw new Error('Invalid request to OpenAI API. The image may be too large or in an unsupported format.');
+      }
+      
+      if (error.message.includes('500') || error.message.includes('502') || error.message.includes('503')) {
+        throw new Error('OpenAI API is temporarily unavailable. Please try again in a few moments.');
+      }
+      
+      if (error.message.includes('network') || error.message.includes('fetch')) {
+        throw new Error('Network error. Please check your internet connection and try again.');
+      }
+      
+      // Pass through the original error message if it's descriptive
+      if (error.message.length > 10) {
+        throw new Error(`OpenAI API error: ${error.message}`);
+      }
+    }
+    
+    throw new Error('Failed to generate mini design analysis. Please try again or check your API configuration.');
+  }
+}
+
+// GPT-4o-mini version comparison analysis
+export async function generateMiniAdviceVersion({
+  newImageUrl,
+  previousImageUrl,
+  previousAdvice,
+  context,
+  inquiries,
+  versionNotes,
+  globalSettings,
+}: DesignVersionComparisonRequest): Promise<string> {
+  try {
+    // Check if OpenAI is available
+    if (!openai) {
+      throw new Error('OPENAI_API_KEY is required in environment variables');
+    }
+
+    // Use mini analysis version comparison prompts
+    const systemPrompt = MINI_ANALYSIS_PROMPT.versionSystem(globalSettings);
+    const userPrompt = MINI_ANALYSIS_PROMPT.versionUser(context, inquiries, versionNotes, previousAdvice);
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const messages: any[] = [];
+    
+    // Add system message
+    messages.push({
+      role: 'system',
+      content: systemPrompt,
+    });
+    
+    // Build user message with both images
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const userContent: any[] = [];
+    
+    userContent.push({
+      type: 'text',
+      text: userPrompt,
+    });
+    
+    userContent.push({
+      type: 'text',
+      text: 'Previous Design:',
+    });
+    
+    userContent.push({
+      type: 'image_url',
+      image_url: {
+        url: previousImageUrl,
+        detail: 'low', // Use low detail for faster processing
+      },
+    });
+    
+    userContent.push({
+      type: 'text',
+      text: 'New Design Version:',
+    });
+    
+    userContent.push({
+      type: 'image_url',
+      image_url: {
+        url: newImageUrl,
+        detail: 'low', // Use low detail for faster processing
+      },
+    });
+    
+    messages.push({
+      role: 'user',
+      content: userContent,
+    });
+
+    const response = await openai.chat.completions.create({
+      model: 'gpt-4o-mini', // Use the mini model specifically
+      messages,
+      max_tokens: 1500, // Shorter responses for faster processing
+      temperature: 0.7,
+    });
+
+    const content = response.choices[0]?.message?.content;
+    
+    if (!content) {
+      throw new Error('No content received from OpenAI API');
+    }
+
+    return content.trim();
+  } catch (error) {
+    console.error('OpenAI API error in mini version analysis:', error);
+    
+    if (error instanceof Error) {
+      // Same error handling as other functions
+      if (error.message.includes('401') || error.message.includes('API key') || error.message.includes('Unauthorized')) {
+        throw new Error('Invalid OpenAI API key. Please check your API key in .env.local file.');
+      }
+      
+      if (error.message.includes('429') || error.message.includes('quota') || error.message.includes('rate limit')) {
+        throw new Error('OpenAI API rate limit exceeded. Please wait a moment and try again.');
+      }
+      
+      if (error.message.includes('400') || error.message.includes('Bad Request')) {
+        throw new Error('Invalid request to OpenAI API. The image may be too large or in an unsupported format.');
+      }
+      
+      if (error.message.includes('500') || error.message.includes('502') || error.message.includes('503')) {
+        throw new Error('OpenAI API is temporarily unavailable. Please try again in a few moments.');
+      }
+      
+      if (error.message.includes('network') || error.message.includes('fetch')) {
+        throw new Error('Network error. Please check your internet connection and try again.');
+      }
+      
+      // Pass through the original error message if it's descriptive
+      if (error.message.length > 10) {
+        throw new Error(`OpenAI API error: ${error.message}`);
+      }
+    }
+    
+    throw new Error('Failed to generate mini version analysis. Please try again or check your API configuration.');
   }
 }

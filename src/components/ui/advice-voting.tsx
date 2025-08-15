@@ -13,7 +13,7 @@ interface AdviceVotingProps {
 
 interface Vote {
   id: string;
-  preferred_advice_type: number; // 1 or 2
+  preferred_advice_type: number; // 1, 2, or 3
   created_at: string;
 }
 

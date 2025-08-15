@@ -51,7 +51,10 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { name, image_url, image_path, context, inquiries, advice, senior_critique } = body;
+    const { name, image_url, image_path, context, inquiries, advice, senior_critique, mini_advice } = body;
+    
+    // Log what we're receiving
+    console.log('Received entry data:', { name, image_url, image_path, context, inquiries, advice: !!advice, senior_critique: !!senior_critique, mini_advice: !!mini_advice });
 
     // Prepare the entry data
     const entryData: Record<string, unknown> = {
@@ -68,6 +71,9 @@ export async function POST(request: NextRequest) {
     if (senior_critique) {
       entryData.senior_critique = senior_critique;
     }
+    if (mini_advice) {
+      entryData.mini_advice = mini_advice;
+    }
 
     const { data, error } = await supabaseAdmin
       .from('design_entries')
@@ -80,8 +86,9 @@ export async function POST(request: NextRequest) {
     return NextResponse.json(data);
   } catch (error) {
     console.error('Error creating entry:', error);
+    console.error('Entry data being inserted:', entryData);
     return NextResponse.json(
-      { error: 'Failed to create entry' },
+      { error: 'Failed to create entry', details: error instanceof Error ? error.message : 'Unknown error' },
       { status: 500 }
     );
   }

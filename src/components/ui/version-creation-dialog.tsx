@@ -16,6 +16,7 @@ import { Label } from '@/components/ui/label';
 import { DesignEntry } from '@/types';
 import { AnalyticsService } from '@/lib/analytics';
 import { useAuth } from '@/contexts/auth-context';
+import { FEATURES } from '@/lib/environment';
 
 interface VersionCreationDialogProps {
   isOpen: boolean;
@@ -29,6 +30,7 @@ interface VersionCreationDialogProps {
     image_path: string | null;
     advice: string;
     senior_critique?: string;
+    mini_advice?: string;
     entry_id: string;
     notes: string | null;
   }) => void;
@@ -46,7 +48,7 @@ const generateVersionAdvice = async (
   inquiries: string, 
   versionNotes: string,
   globalSettings: string
-): Promise<{ advice: string; seniorCritique: string }> => {
+): Promise<{ advice: string; seniorCritique: string | null; miniAdvice: string | null }> => {
   try {
     const response = await fetch('/api/analyze-version', {
       method: 'POST',
@@ -73,7 +75,8 @@ const generateVersionAdvice = async (
     const data = await response.json();
     return { 
       advice: data.advice, 
-      seniorCritique: data.seniorCritique
+      seniorCritique: data.seniorCritique || null,
+      miniAdvice: data.miniAdvice || null
     };
   } catch (error) {
     console.error('Error generating version advice:', error);
@@ -137,7 +140,7 @@ export function VersionCreationDialog({
         throw new Error('Previous design image not found');
       }
       
-      const { advice, seniorCritique } = await generateVersionAdvice(
+      const { advice, seniorCritique, miniAdvice } = await generateVersionAdvice(
         imageUrl,
         previousImageUrl,
         previousAdvice || '',
@@ -158,7 +161,8 @@ export function VersionCreationDialog({
           image_url: imageUrl,
           image_path: imagePath,
           advice,
-          senior_critique: seniorCritique,
+          senior_critique: FEATURES.GENERATE_MULTIPLE_ADVICE ? seniorCritique : null,
+          mini_advice: FEATURES.GENERATE_MULTIPLE_ADVICE ? miniAdvice : null,
           notes: notes || null,
         }),
       });
