@@ -1,26 +1,37 @@
 /**
  * Environment utilities for feature flagging
+ * 
+ * To enable development features in production, set NEXT_PUBLIC_DEV_FEATURES=true
+ * This is useful for testing features on staging or when developing locally
  */
 
-// Check if we're in development mode
+// Check for explicit development feature override
+const DEV_FEATURES_ENABLED = process.env.NEXT_PUBLIC_DEV_FEATURES === 'true';
+
+// Check if we're in development mode (server-side only for API routes)
 export const isDevelopment = process.env.NODE_ENV === 'development';
 
 // Check if we're in production mode
 export const isProduction = process.env.NODE_ENV === 'production';
 
-// Feature flags
+// Feature flags - Production by default, can be overridden with NEXT_PUBLIC_DEV_FEATURES
 export const FEATURES = {
   // Show all advice tabs (General, Senior Designer, GPT-4o-mini)
-  SHOW_ALL_ADVICE_TABS: isDevelopment,
+  SHOW_ALL_ADVICE_TABS: DEV_FEATURES_ENABLED,
   
-  // Show advice voting functionality
-  SHOW_ADVICE_VOTING: isDevelopment,
+  // Show advice voting functionality  
+  SHOW_ADVICE_VOTING: DEV_FEATURES_ENABLED,
   
-  // Generate multiple advice types via API
+  // Generate multiple advice types via API (server-side only)
   GENERATE_MULTIPLE_ADVICE: isDevelopment,
 } as const;
 
-// Log feature flags in development
-if (isDevelopment) {
-  console.log('🔧 Development Features Enabled:', FEATURES);
+// Log feature flags for debugging
+if (typeof window !== 'undefined') {
+  // Client-side logging
+  console.log('🎛️ Feature Flags:', {
+    SHOW_ALL_ADVICE_TABS: FEATURES.SHOW_ALL_ADVICE_TABS,
+    SHOW_ADVICE_VOTING: FEATURES.SHOW_ADVICE_VOTING,
+    DEV_FEATURES_ENABLED,
+  });
 }
