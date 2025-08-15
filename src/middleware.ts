@@ -7,10 +7,10 @@ export function middleware(request: NextRequest) {
   // Content Security Policy
   const cspHeader = `
     default-src 'self';
-    script-src 'self' 'unsafe-eval' 'unsafe-inline' https://eu.posthog.com https://app.posthog.com;
+    script-src 'self' 'unsafe-eval' 'unsafe-inline' https://eu.posthog.com https://app.posthog.com https://eu.i.posthog.com https://eu-assets.i.posthog.com;
     style-src 'self' 'unsafe-inline';
     img-src 'self' data: blob: https://*.supabase.co https://*.supabase.com;
-    connect-src 'self' https://*.supabase.co https://*.supabase.com https://api.openai.com https://eu.posthog.com https://app.posthog.com https://*.posthog.com;
+    connect-src 'self' https://*.supabase.co https://*.supabase.com https://api.openai.com https://eu.posthog.com https://app.posthog.com https://eu.i.posthog.com https://eu-assets.i.posthog.com https://*.posthog.com;
     font-src 'self';
     object-src 'none';
     base-uri 'self';
