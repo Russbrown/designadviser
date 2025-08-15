@@ -16,14 +16,14 @@ export const isProduction = process.env.NODE_ENV === 'production';
 
 // Feature flags - Production by default, can be overridden with NEXT_PUBLIC_DEV_FEATURES
 export const FEATURES = {
-  // Show all advice tabs (General, Senior Designer, GPT-4o-mini)
-  SHOW_ALL_ADVICE_TABS: DEV_FEATURES_ENABLED,
+  // Show both advice tabs (General, Senior Designer)
+  SHOW_ALL_ADVICE_TABS: true,
   
   // Show advice voting functionality  
-  SHOW_ADVICE_VOTING: DEV_FEATURES_ENABLED,
+  SHOW_ADVICE_VOTING: true,
   
   // Generate multiple advice types via API (server-side only)
-  GENERATE_MULTIPLE_ADVICE: isDevelopment,
+  GENERATE_MULTIPLE_ADVICE: true,
 } as const;
 
 // Log feature flags for debugging
