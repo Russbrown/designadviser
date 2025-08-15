@@ -74,6 +74,10 @@ export async function POST(request: NextRequest) {
       
       const batchPromises = batch.map(async (user) => {
         try {
+          if (!user.email) {
+            return { success: false, email: 'unknown', error: 'No email address' };
+          }
+
           const userName = user.user_metadata?.name || user.user_metadata?.full_name;
           const emailContent = generateReminderEmail(userName);
           

@@ -53,7 +53,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Update user metadata with preferences
-    const { data, error } = await supabaseAdmin.auth.admin.updateUserById(user_id, {
+    const { error } = await supabaseAdmin.auth.admin.updateUserById(user_id, {
       user_metadata: {
         daily_reminders: daily_reminders
       }
