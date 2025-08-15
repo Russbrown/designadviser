@@ -321,10 +321,10 @@ export function DesignViewer({ entry, onBack, onNewVersion, onDelete, onNameUpda
             
             {/* Advice Section with Tabs */}
             <div className="space-y-4">
-              {/* Tab Navigation and Voting */}
-              <div className="flex items-center justify-between">
-                {FEATURES.SHOW_ALL_ADVICE_TABS ? (
-                  // Development: Show all tabs
+              {/* Tab Navigation and Voting - Only in development */}
+              {FEATURES.SHOW_ALL_ADVICE_TABS && (
+                <div className="flex items-center justify-between">
+                  {/* Development: Show all tabs */}
                   <div className="inline-flex space-x-1 bg-muted p-1 rounded-lg">
                     <button
                       onClick={() => setActiveTab('analysis')}
@@ -357,23 +357,16 @@ export function DesignViewer({ entry, onBack, onNewVersion, onDelete, onNameUpda
                       3 - GPT-4o-mini
                     </button>
                   </div>
-                ) : (
-                  // Production: Only show General tab label
-                  <div className="inline-flex space-x-1 bg-muted p-1 rounded-lg">
-                    <div className="px-3 py-2 text-sm font-medium rounded-md bg-background text-foreground shadow-sm">
-                      AI Analysis
-                    </div>
-                  </div>
-                )}
-                
-                {/* Voting Section - Only in development */}
-                {FEATURES.SHOW_ADVICE_VOTING && (currentVersion.advice || currentVersion.senior_critique) && (
-                  <AdviceVoting
-                    entryId={'isOriginal' in currentVersion ? entry.id : undefined}
-                    versionId={'isOriginal' in currentVersion ? undefined : currentVersion.id}
-                  />
-                )}
-              </div>
+                  
+                  {/* Voting Section - Only in development */}
+                  {FEATURES.SHOW_ADVICE_VOTING && (currentVersion.advice || currentVersion.senior_critique) && (
+                    <AdviceVoting
+                      entryId={'isOriginal' in currentVersion ? entry.id : undefined}
+                      versionId={'isOriginal' in currentVersion ? undefined : currentVersion.id}
+                    />
+                  )}
+                </div>
+              )}
 
               {/* Tab Content */}
               <div>
