@@ -851,7 +851,7 @@ export async function generateMiniAdvice({
     });
 
     const response = await openai.chat.completions.create({
-      model: 'gpt-4o', // Use gpt-4o until o3-pro is available
+      model: 'o3-mini', // Try o3-mini first to test o3 model availability
       messages,
       max_tokens: 2500, // Longer responses for comprehensive analysis
       temperature: 0.5, // Lower temperature for more focused reasoning
@@ -969,7 +969,7 @@ export async function generateMiniAdviceVersion({
     });
 
     const response = await openai.chat.completions.create({
-      model: 'gpt-4o', // Use gpt-4o until o3-pro is available
+      model: 'o3-mini', // Try o3-mini first to test o3 model availability
       messages,
       max_tokens: 2500, // Longer responses for comprehensive analysis
       temperature: 0.5, // Lower temperature for more focused reasoning
