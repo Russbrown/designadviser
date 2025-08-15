@@ -389,7 +389,7 @@ export default function Home() {
       <ErrorHandler />
       <div className="flex items-start justify-between">
         <div className="space-y-2 flex-1">
-          <h1 className="text-3xl font-bold">Design Adviser</h1>
+          <h1 className="text-3xl font-bold">Design Journal</h1>
         </div>
         <div className="flex items-center gap-3">
           <Button 

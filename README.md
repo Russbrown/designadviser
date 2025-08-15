@@ -1,4 +1,4 @@
-# Design Adviser
+# Design Journal
 
 A web application for uploading design images and receiving **AI-powered design advice** using OpenAI's GPT-4 Vision.
 

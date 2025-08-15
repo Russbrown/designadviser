@@ -14,8 +14,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Design Adviser",
-  description: "Upload images and get design advice",
+  title: "Design Journal",
+  description: "Track your design journey and get AI-powered design advice",
 };
 
 export default function RootLayout({
