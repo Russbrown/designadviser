@@ -36,7 +36,7 @@ export const generateReminderEmail = (userName?: string) => {
           </div>
           
           <div style="text-align: center; margin: 32px 0;">
-            <a href="${process.env.NEXT_PUBLIC_SITE_URL || 'https://www.designjournal.net'}" 
+            <a href="${process.env.NEXT_PUBLIC_SITE_URL || 'https://designjournal.net'}" 
                style="background: #2563eb; color: white; padding: 14px 28px; text-decoration: none; border-radius: 8px; font-weight: 600; display: inline-block; font-size: 16px;">
               Open Design Journal →
             </a>
@@ -50,7 +50,7 @@ export const generateReminderEmail = (userName?: string) => {
         <div style="text-align: center; padding: 20px; color: #9ca3af; font-size: 12px;">
           <p>You're receiving this because you have daily reminders enabled in Design Journal.</p>
           <p style="margin: 8px 0;">
-            <a href="${process.env.NEXT_PUBLIC_SITE_URL || 'https://www.designjournal.net'}" style="color: #6b7280;">Manage preferences</a>
+            <a href="${process.env.NEXT_PUBLIC_SITE_URL || 'https://designjournal.net'}" style="color: #6b7280;">Manage preferences</a>
           </p>
         </div>
       </div>
@@ -65,13 +65,13 @@ Today's prompts:
 • Upload a work-in-progress for AI feedback  
 • Document an iteration or design decision
 
-Open Design Journal: ${process.env.NEXT_PUBLIC_SITE_URL || 'https://www.designjournal.net'}
+Open Design Journal: ${process.env.NEXT_PUBLIC_SITE_URL || 'https://designjournal.net'}
 
 Consistent documentation helps track your design evolution and growth.
 
 ---
 You're receiving this because you have daily reminders enabled in Design Journal.
-Manage preferences: ${process.env.NEXT_PUBLIC_SITE_URL || 'https://www.designjournal.net'}
+Manage preferences: ${process.env.NEXT_PUBLIC_SITE_URL || 'https://designjournal.net'}
     `.trim()
   };
 };
