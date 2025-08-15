@@ -13,7 +13,7 @@ interface AdviceVotingProps {
 
 interface Vote {
   id: string;
-  preferred_advice_type: number; // 1, 2, or 3
+  preferred_advice_type: number; // 1 or 2
   created_at: string;
 }
 
@@ -170,7 +170,7 @@ export function AdviceVoting({ entryId, versionId, onVoteChange }: AdviceVotingP
       <span className="text-sm font-medium">Which advice is better?</span>
       
       <div className="flex gap-2">
-        {[1, 2, 3].map((type) => (
+        {[1, 2].map((type) => (
           <Button
             key={type}
             variant={currentVote === type ? 'default' : 'outline'}

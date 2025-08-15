@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { analyzeDesignVersion, generateSeniorCritiqueVersion, preprocessImage, generatePreprocessedAdvice } from '@/lib/openai';
+import { analyzeDesignVersion, generateSeniorCritiqueVersion } from '@/lib/openai';
 
 export async function POST(request: NextRequest) {
   try {
@@ -23,11 +23,8 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // First, preprocess the new image to extract structured data
-    const preprocessedData = await preprocessImage({ imageUrl: newImageUrl });
-
-    // Generate all three types of analysis for the version
-    const [advice, seniorCritique, preprocessedAdvice] = await Promise.all([
+    // Generate both types of analysis for the version
+    const [advice, seniorCritique] = await Promise.all([
       analyzeDesignVersion({
         newImageUrl,
         previousImageUrl,
@@ -46,17 +43,10 @@ export async function POST(request: NextRequest) {
         inquiries: inquiries || '',
         versionNotes: versionNotes || '',
         globalSettings: globalSettings || '',
-      }),
-      generatePreprocessedAdvice({
-        imageUrl: newImageUrl,
-        context: context || '',
-        inquiries: inquiries || '',
-        globalSettings: globalSettings || '',
-        preprocessedData,
       })
     ]);
 
-    return NextResponse.json({ advice, seniorCritique, preprocessedAdvice });
+    return NextResponse.json({ advice, seniorCritique });
   } catch (error) {
     console.error('Version analysis API error:', error);
     

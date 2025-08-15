@@ -29,7 +29,6 @@ interface VersionCreationDialogProps {
     image_path: string | null;
     advice: string;
     senior_critique?: string;
-    preprocessed_advice?: string;
     entry_id: string;
     notes: string | null;
   }) => void;
@@ -47,7 +46,7 @@ const generateVersionAdvice = async (
   inquiries: string, 
   versionNotes: string,
   globalSettings: string
-): Promise<{ advice: string; seniorCritique: string; preprocessedAdvice: string }> => {
+): Promise<{ advice: string; seniorCritique: string }> => {
   try {
     const response = await fetch('/api/analyze-version', {
       method: 'POST',
@@ -74,8 +73,7 @@ const generateVersionAdvice = async (
     const data = await response.json();
     return { 
       advice: data.advice, 
-      seniorCritique: data.seniorCritique, 
-      preprocessedAdvice: data.preprocessedAdvice 
+      seniorCritique: data.seniorCritique
     };
   } catch (error) {
     console.error('Error generating version advice:', error);
@@ -139,7 +137,7 @@ export function VersionCreationDialog({
         throw new Error('Previous design image not found');
       }
       
-      const { advice, seniorCritique, preprocessedAdvice } = await generateVersionAdvice(
+      const { advice, seniorCritique } = await generateVersionAdvice(
         imageUrl,
         previousImageUrl,
         previousAdvice || '',
@@ -161,7 +159,6 @@ export function VersionCreationDialog({
           image_path: imagePath,
           advice,
           senior_critique: seniorCritique,
-          preprocessed_advice: preprocessedAdvice,
           notes: notes || null,
         }),
       });

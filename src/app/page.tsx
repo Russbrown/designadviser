@@ -18,7 +18,7 @@ import { ErrorHandler } from '@/components/error-handler';
 import { AnalyticsService } from '@/lib/analytics';
 
 // Real OpenAI-powered design analysis
-const generateAdvice = async (imageUrl: string, context: string, inquiries: string, globalSettings: string): Promise<{ advice: string; seniorCritique: string; preprocessedAdvice: string }> => {
+const generateAdvice = async (imageUrl: string, context: string, inquiries: string, globalSettings: string): Promise<{ advice: string; seniorCritique: string }> => {
   try {
     const response = await fetch('/api/analyze', {
       method: 'POST',
@@ -39,7 +39,7 @@ const generateAdvice = async (imageUrl: string, context: string, inquiries: stri
     }
 
     const data = await response.json();
-    return { advice: data.advice, seniorCritique: data.seniorCritique, preprocessedAdvice: data.preprocessedAdvice };
+    return { advice: data.advice, seniorCritique: data.seniorCritique };
   } catch (error) {
     console.error('Error generating advice:', error);
     
@@ -177,7 +177,7 @@ export default function Home() {
       const inquiries = designProblem || '';
       
       // Generate advice using OpenAI API - this will throw if it fails
-      const { advice, seniorCritique, preprocessedAdvice } = await generateAdvice(imageUrl, '', inquiries, globalSettings);
+      const { advice, seniorCritique } = await generateAdvice(imageUrl, '', inquiries, globalSettings);
       
       // Track design analysis completion
       AnalyticsService.trackDesignAnalysis(user?.id || null, {
@@ -201,7 +201,6 @@ export default function Home() {
           inquiries: designProblem || null,
           advice,
           senior_critique: seniorCritique,
-          preprocessed_advice: preprocessedAdvice,
         }),
       });
       

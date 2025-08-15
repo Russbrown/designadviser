@@ -4,14 +4,11 @@ export class AnalyticsService {
   static isInitialized = false;
 
   static init() {
-    if (typeof window !== 'undefined' && !this.isInitialized) {
+    if (typeof window !== 'undefined' && !this.isInitialized && process.env.NODE_ENV === 'production') {
       posthog.init(process.env.NEXT_PUBLIC_POSTHOG_KEY!, {
         api_host: process.env.NEXT_PUBLIC_POSTHOG_HOST || 'https://eu.posthog.com',
         capture_pageview: false, // We'll manually capture pageviews
         capture_pageleave: true,
-        loaded: (posthog) => {
-          if (process.env.NODE_ENV === 'development') posthog.debug();
-        },
         // Disable web vitals to prevent the warning
         capture_performance: false,
       });

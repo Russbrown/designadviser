@@ -24,7 +24,7 @@ export function DesignViewer({ entry, onBack, onNewVersion, onDelete, onNameUpda
   const [editedName, setEditedName] = useState(entry.name || '');
   const [previousVersionCount, setPreviousVersionCount] = useState(0);
   const [showContextDropdown, setShowContextDropdown] = useState(false);
-  const [activeTab, setActiveTab] = useState<'analysis' | 'critique' | 'preprocessed'>('analysis');
+  const [activeTab, setActiveTab] = useState<'analysis' | 'critique'>('analysis');
   
   // Combine original entry with versions for navigation
   // Original entry is always version 1, additional versions start from 2
@@ -342,20 +342,10 @@ export function DesignViewer({ entry, onBack, onNewVersion, onDelete, onNameUpda
                 >
                   2 - Senior Designer
                 </button>
-                <button
-                  onClick={() => setActiveTab('preprocessed')}
-                  className={`px-3 py-2 text-sm font-medium rounded-md transition-colors ${
-                    activeTab === 'preprocessed'
-                      ? 'bg-background text-foreground shadow-sm'
-                      : 'text-muted-foreground hover:text-foreground'
-                  }`}
-                >
-                  3 - Structured
-                </button>
                 </div>
                 
                 {/* Voting Section */}
-                {(currentVersion.advice || currentVersion.senior_critique || currentVersion.preprocessed_advice) && (
+                {(currentVersion.advice || currentVersion.senior_critique) && (
                   <AdviceVoting
                     entryId={'isOriginal' in currentVersion ? entry.id : undefined}
                     versionId={'isOriginal' in currentVersion ? undefined : currentVersion.id}
@@ -373,20 +363,12 @@ export function DesignViewer({ entry, onBack, onNewVersion, onDelete, onNameUpda
                       No general critique generated for this version yet.
                     </p>
                   )
-                ) : activeTab === 'critique' ? (
+                ) : (
                   currentVersion.senior_critique ? (
                     <MarkdownRenderer content={currentVersion.senior_critique} />
                   ) : (
                     <p className="text-muted-foreground italic">
                       No senior designer critique generated for this version yet.
-                    </p>
-                  )
-                ) : (
-                  currentVersion.preprocessed_advice ? (
-                    <MarkdownRenderer content={currentVersion.preprocessed_advice} />
-                  ) : (
-                    <p className="text-muted-foreground italic">
-                      No pre-processed analysis generated for this version yet.
                     </p>
                   )
                 )}
