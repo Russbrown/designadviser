@@ -1,7 +1,7 @@
 import OpenAI from 'openai';
 import { GENERAL_ANALYSIS_PROMPT } from './prompts/general-analysis';
 import { SENIOR_CRITIQUE_PROMPT } from './prompts/senior-critique';
-import { MINI_ANALYSIS_PROMPT } from './prompts/mini-analysis';
+import { O3_PRO_ANALYSIS_PROMPT } from './prompts/o3-pro-analysis';
 
 // Initialize OpenAI only if API key is available (not during build time)
 const openai = process.env.OPENAI_API_KEY 
@@ -806,7 +806,7 @@ export async function generateDesignName({
   }
 }
 
-// GPT-4o-mini analysis - faster and more cost-effective option
+// o3-pro analysis - advanced reasoning and comprehensive analysis
 export async function generateMiniAdvice({
   imageUrl,
   context,
@@ -819,9 +819,9 @@ export async function generateMiniAdvice({
       throw new Error('OPENAI_API_KEY is required in environment variables');
     }
 
-    // Use mini analysis prompts
-    const systemPrompt = MINI_ANALYSIS_PROMPT.system(globalSettings);
-    const userPrompt = MINI_ANALYSIS_PROMPT.user(context, inquiries);
+    // Use o3-pro analysis prompts
+    const systemPrompt = O3_PRO_ANALYSIS_PROMPT.system(globalSettings);
+    const userPrompt = O3_PRO_ANALYSIS_PROMPT.user(context, inquiries);
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const messages: any[] = [];
@@ -844,17 +844,17 @@ export async function generateMiniAdvice({
           type: 'image_url',
           image_url: {
             url: imageUrl,
-            detail: 'low', // Use low detail for faster processing
+            detail: 'high', // Use high detail for comprehensive o3-pro analysis
           },
         },
       ],
     });
 
     const response = await openai.chat.completions.create({
-      model: 'gpt-4o-mini', // Use the mini model specifically
+      model: 'o3-pro', // Use the o3-pro model for advanced analysis
       messages,
-      max_tokens: 1500, // Shorter responses for faster processing
-      temperature: 0.7,
+      max_tokens: 2500, // Longer responses for comprehensive analysis
+      temperature: 0.5, // Lower temperature for more focused reasoning
     });
 
     const content = response.choices[0]?.message?.content;
@@ -865,7 +865,7 @@ export async function generateMiniAdvice({
 
     return content.trim();
   } catch (error) {
-    console.error('OpenAI API error in mini analysis:', error);
+    console.error('OpenAI API error in o3-pro analysis:', error);
     
     if (error instanceof Error) {
       // Same error handling as other functions
@@ -895,11 +895,11 @@ export async function generateMiniAdvice({
       }
     }
     
-    throw new Error('Failed to generate mini design analysis. Please try again or check your API configuration.');
+    throw new Error('Failed to generate o3-pro design analysis. Please try again or check your API configuration.');
   }
 }
 
-// GPT-4o-mini version comparison analysis
+// o3-pro version comparison analysis
 export async function generateMiniAdviceVersion({
   newImageUrl,
   previousImageUrl,
@@ -915,9 +915,9 @@ export async function generateMiniAdviceVersion({
       throw new Error('OPENAI_API_KEY is required in environment variables');
     }
 
-    // Use mini analysis version comparison prompts
-    const systemPrompt = MINI_ANALYSIS_PROMPT.versionSystem(globalSettings);
-    const userPrompt = MINI_ANALYSIS_PROMPT.versionUser(context, inquiries, versionNotes, previousAdvice);
+    // Use o3-pro analysis version comparison prompts
+    const systemPrompt = O3_PRO_ANALYSIS_PROMPT.versionSystem(globalSettings);
+    const userPrompt = O3_PRO_ANALYSIS_PROMPT.versionUser(context, inquiries, versionNotes, previousAdvice);
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const messages: any[] = [];
@@ -946,7 +946,7 @@ export async function generateMiniAdviceVersion({
       type: 'image_url',
       image_url: {
         url: previousImageUrl,
-        detail: 'low', // Use low detail for faster processing
+        detail: 'high', // Use high detail for comprehensive o3-pro analysis
       },
     });
     
@@ -959,7 +959,7 @@ export async function generateMiniAdviceVersion({
       type: 'image_url',
       image_url: {
         url: newImageUrl,
-        detail: 'low', // Use low detail for faster processing
+        detail: 'high', // Use high detail for comprehensive o3-pro analysis
       },
     });
     
@@ -969,10 +969,10 @@ export async function generateMiniAdviceVersion({
     });
 
     const response = await openai.chat.completions.create({
-      model: 'gpt-4o-mini', // Use the mini model specifically
+      model: 'o3-pro', // Use the o3-pro model for advanced analysis
       messages,
-      max_tokens: 1500, // Shorter responses for faster processing
-      temperature: 0.7,
+      max_tokens: 2500, // Longer responses for comprehensive analysis
+      temperature: 0.5, // Lower temperature for more focused reasoning
     });
 
     const content = response.choices[0]?.message?.content;
@@ -983,7 +983,7 @@ export async function generateMiniAdviceVersion({
 
     return content.trim();
   } catch (error) {
-    console.error('OpenAI API error in mini version analysis:', error);
+    console.error('OpenAI API error in o3-pro version analysis:', error);
     
     if (error instanceof Error) {
       // Same error handling as other functions
@@ -1013,6 +1013,6 @@ export async function generateMiniAdviceVersion({
       }
     }
     
-    throw new Error('Failed to generate mini version analysis. Please try again or check your API configuration.');
+    throw new Error('Failed to generate o3-pro version analysis. Please try again or check your API configuration.');
   }
 }

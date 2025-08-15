@@ -354,7 +354,7 @@ export function DesignViewer({ entry, onBack, onNewVersion, onDelete, onNameUpda
                           : 'text-muted-foreground hover:text-foreground'
                       }`}
                     >
-                      3 - GPT-4o-mini
+                      3 - o3-pro
                     </button>
                   </div>
                   
@@ -393,7 +393,7 @@ export function DesignViewer({ entry, onBack, onNewVersion, onDelete, onNameUpda
                       <MarkdownRenderer content={currentVersion.mini_advice} />
                     ) : (
                       <p className="text-muted-foreground italic">
-                        No GPT-4o-mini analysis generated for this version yet.
+                        No o3-pro analysis generated for this version yet.
                       </p>
                     )
                   )
