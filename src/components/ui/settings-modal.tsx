@@ -11,6 +11,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
+import { Switch } from '@/components/ui/switch';
 import { AnalyticsService } from '@/lib/analytics';
 
 interface SettingsModalProps {
@@ -29,12 +30,32 @@ export function SettingsModal({
   userId
 }: SettingsModalProps) {
   const [settings, setSettings] = useState(initialSettings);
+  const [dailyReminders, setDailyReminders] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
 
   // Update local state when initialSettings changes
   useEffect(() => {
     setSettings(initialSettings);
   }, [initialSettings]);
+
+  // Load user preferences when modal opens
+  useEffect(() => {
+    const loadUserPreferences = async () => {
+      if (!userId || !isOpen) return;
+      
+      try {
+        const response = await fetch(`/api/user-preferences?user_id=${userId}`);
+        if (response.ok) {
+          const preferences = await response.json();
+          setDailyReminders(preferences.daily_reminders !== false); // Default to true
+        }
+      } catch (error) {
+        console.error('Error loading user preferences:', error);
+      }
+    };
+
+    loadUserPreferences();
+  }, [userId, isOpen]);
 
   const handleSave = async () => {
     setIsSaving(true);
@@ -46,22 +67,39 @@ export function SettingsModal({
       }
 
 
-      // Save to server
-      const response = await fetch('/api/settings', {
+      // Save settings to server
+      const settingsResponse = await fetch('/api/settings', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ globalAdvice: settings, user_id: userId }),
       });
+
+      // Save user preferences to server
+      const preferencesResponse = await fetch('/api/user-preferences', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ 
+          user_id: userId, 
+          daily_reminders: dailyReminders 
+        }),
+      });
       
-      if (!response.ok) {
-        const errorData = await response.json();
+      if (!settingsResponse.ok) {
+        const errorData = await settingsResponse.json();
         console.error('Failed to save settings:', errorData);
         alert(`Failed to save settings: ${errorData.error || 'Unknown error'}`);
         return;
       }
+
+      if (!preferencesResponse.ok) {
+        const errorData = await preferencesResponse.json();
+        console.error('Failed to save preferences:', errorData);
+        alert(`Failed to save email preferences: ${errorData.error || 'Unknown error'}`);
+        return;
+      }
       
-      const result = await response.json();
-      console.log('Settings saved successfully:', result);
+      const settingsResult = await settingsResponse.json();
+      console.log('Settings and preferences saved successfully:', settingsResult);
       
       // Track settings update event
       AnalyticsService.trackSettingsUpdate(userId, {
@@ -88,13 +126,13 @@ export function SettingsModal({
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="max-w-2xl max-h-[80vh]">
         <DialogHeader>
-          <DialogTitle>Configure Global Advice Settings</DialogTitle>
+          <DialogTitle>Settings & Preferences</DialogTitle>
           <DialogDescription>
-            Set up global context that will be included with every design analysis to personalize the AI feedback.
+            Configure global advice settings and manage your email notification preferences.
           </DialogDescription>
         </DialogHeader>
 
-        <div className="space-y-4 py-4">
+        <div className="space-y-6 py-4">
           <div className="space-y-2">
             <Label htmlFor="global-settings">
               Global Context & Guidelines
@@ -113,6 +151,25 @@ Examples:
 • Prefer clean typography and plenty of whitespace"
               className="min-h-[200px] resize-none"
             />
+          </div>
+
+          <div className="space-y-4">
+            <h3 className="text-lg font-medium">Email Notifications</h3>
+            <div className="flex items-center justify-between">
+              <div className="space-y-1">
+                <Label htmlFor="daily-reminders" className="text-sm font-medium">
+                  Daily Design Journal Reminders
+                </Label>
+                <p className="text-sm text-muted-foreground">
+                  Get a daily email reminder to add something to your design journal
+                </p>
+              </div>
+              <Switch
+                id="daily-reminders"
+                checked={dailyReminders}
+                onCheckedChange={setDailyReminders}
+              />
+            </div>
           </div>
           
           <div className="text-sm text-muted-foreground bg-muted/50 p-3 rounded-lg">
