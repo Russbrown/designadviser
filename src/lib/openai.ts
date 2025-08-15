@@ -851,7 +851,7 @@ export async function generateMiniAdvice({
     });
 
     const response = await openai.chat.completions.create({
-      model: 'o3-pro-2024-12-17', // Use full o3-pro model name
+      model: 'o3-mini-2024-12-17', // Try o3-mini with full model name
       messages,
       max_tokens: 2500, // Longer responses for comprehensive analysis
       temperature: 0.5, // Lower temperature for more focused reasoning
@@ -969,7 +969,7 @@ export async function generateMiniAdviceVersion({
     });
 
     const response = await openai.chat.completions.create({
-      model: 'o3-pro-2024-12-17', // Use full o3-pro model name
+      model: 'o3-mini-2024-12-17', // Try o3-mini with full model name
       messages,
       max_tokens: 2500, // Longer responses for comprehensive analysis
       temperature: 0.5, // Lower temperature for more focused reasoning
