@@ -54,9 +54,10 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { content } = body;
+    const { title, content } = body;
     
     console.log('📋 [TEXT_UPDATE] Received text update data:', {
+      title: title || 'No title',
       contentLength: content?.length || 0,
       userId
     });
@@ -71,6 +72,7 @@ export async function POST(request: NextRequest) {
 
     // Prepare the text update data
     const updateData = {
+      title: title && title.trim() ? title.trim() : null,
       content: content.trim(),
       user_id: userId
     };

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { DesignEntry } from '@/types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -23,34 +23,102 @@ export function DesignViewer({ entry, onBack, onNewVersion, onDelete, onNameUpda
   const [editedName, setEditedName] = useState(entry.name || '');
   const [previousVersionCount, setPreviousVersionCount] = useState(0);
   const [showContextDropdown, setShowContextDropdown] = useState(false);
+  const [isLoadingAdvice, setIsLoadingAdvice] = useState(false);
+  const [currentEntry, setCurrentEntry] = useState(entry);
   // Removed tab state - now showing only GPT-5 advice
   
+  // Use currentEntry for the most up-to-date data
   // Combine original entry with versions for navigation
   // Original entry is always version 1, additional versions start from 2
   const allVersions = [
     {
-      id: entry.id,
-      created_at: entry.created_at,
-      image_url: entry.image_url,
-      advice: entry.advice,
+      id: currentEntry.id,
+      created_at: currentEntry.created_at,
+      image_url: currentEntry.image_url,
+      advice: currentEntry.advice,
       version_number: 1,
       isOriginal: true,
     },
     // Filter out any versions with version_number 1 (shouldn't exist but just in case)
-    ...(entry.design_versions || []).filter(v => v.version_number !== 1)
+    ...(currentEntry.design_versions || []).filter(v => v.version_number !== 1)
   ].sort((a, b) => a.version_number - b.version_number);
 
   // Debug logging to see what versions we have
   console.log('Entry versions:', {
-    entryId: entry.id,
+    entryId: currentEntry.id,
     originalEntry: { version_number: 1, isOriginal: true },
-    designVersions: entry.design_versions,
+    designVersions: currentEntry.design_versions,
     allVersions: allVersions.map(v => ({ 
       version_number: v.version_number, 
       isOriginal: 'isOriginal' in v ? v.isOriginal : false,
       id: v.id 
     }))
   });
+
+  // Poll for advice updates if current advice is empty
+  const pollForAdviceUpdate = useCallback(async () => {
+    if (currentEntry.advice && currentEntry.advice.trim() !== '') {
+      setIsLoadingAdvice(false);
+      return; // Already have advice
+    }
+
+    console.log('🔄 [ADVICE_POLL] Polling for advice updates for entry:', currentEntry.id);
+    
+    try {
+      const response = await fetch(`/api/entries/${currentEntry.id}`);
+      if (!response.ok) {
+        console.error('💥 [ADVICE_POLL] Failed to fetch entry:', response.status);
+        return;
+      }
+      
+      const updatedEntry = await response.json();
+      
+      if (updatedEntry && updatedEntry.advice && updatedEntry.advice.trim() !== '') {
+        console.log('✅ [ADVICE_POLL] Received updated advice:', {
+          entryId: updatedEntry.id,
+          adviceLength: updatedEntry.advice.length
+        });
+        
+        setCurrentEntry(updatedEntry);
+        setIsLoadingAdvice(false);
+      }
+    } catch (error) {
+      console.error('💥 [ADVICE_POLL] Error polling for advice:', error);
+    }
+  }, [currentEntry.id, currentEntry.advice]);
+
+  // Set up polling when entry has no advice
+  useEffect(() => {
+    if (!currentEntry.advice || currentEntry.advice.trim() === '') {
+      setIsLoadingAdvice(true);
+      console.log('🔄 [ADVICE_POLL] Starting polling for advice...');
+      
+      // Poll immediately
+      pollForAdviceUpdate();
+      
+      // Set up periodic polling
+      const pollInterval = setInterval(pollForAdviceUpdate, 3000); // Poll every 3 seconds
+      
+      // Clean up after 2 minutes if no advice received
+      const timeoutId = setTimeout(() => {
+        clearInterval(pollInterval);
+        setIsLoadingAdvice(false);
+        console.log('⏰ [ADVICE_POLL] Polling timeout reached');
+      }, 120000);
+      
+      return () => {
+        clearInterval(pollInterval);
+        clearTimeout(timeoutId);
+      };
+    } else {
+      setIsLoadingAdvice(false);
+    }
+  }, [currentEntry.advice, pollForAdviceUpdate]);
+
+  // Update currentEntry when prop changes
+  useEffect(() => {
+    setCurrentEntry(entry);
+  }, [entry]);
 
   // Effect to automatically show the newest version when new versions are added
   useEffect(() => {
@@ -309,6 +377,11 @@ export function DesignViewer({ entry, onBack, onNewVersion, onDelete, onNameUpda
         <div className="pt-4">
           {currentVersion.advice ? (
             <MarkdownRenderer content={currentVersion.advice} />
+          ) : isLoadingAdvice ? (
+            <div className="flex items-center gap-2 text-muted-foreground">
+              <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-gray-900"></div>
+              <p className="italic">Generating design advice...</p>
+            </div>
           ) : (
             <p className="text-muted-foreground italic">
               No GPT-5 design advice generated for this version yet.

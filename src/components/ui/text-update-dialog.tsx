@@ -3,6 +3,8 @@
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import {
   Dialog,
   DialogContent,
@@ -22,6 +24,7 @@ interface TextUpdateDialogProps {
   onTextUpdateCreated: (textUpdate: {
     id: string;
     created_at: string;
+    title: string | null;
     content: string;
     user_id: string | null;
   }) => void;
@@ -35,6 +38,7 @@ export function TextUpdateDialog({
   onLoadingChange
 }: TextUpdateDialogProps) {
   const { user } = useAuth();
+  const [title, setTitle] = useState('');
   const [content, setContent] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -64,6 +68,7 @@ export function TextUpdateDialog({
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
+          title: title.trim() || null,
           content: content.trim(),
         }),
       });
@@ -76,6 +81,7 @@ export function TextUpdateDialog({
       const newTextUpdate = await response.json();
       
       onTextUpdateCreated(newTextUpdate);
+      setTitle('');
       setContent('');
       onClose();
       
@@ -90,6 +96,7 @@ export function TextUpdateDialog({
 
   const handleClose = () => {
     if (!isSubmitting) {
+      setTitle('');
       setContent('');
       setError(null);
       setActiveTab('write');
@@ -108,6 +115,19 @@ export function TextUpdateDialog({
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="flex-1 flex flex-col min-h-0">
+          <div className="space-y-4 mb-4">
+            <div className="space-y-2">
+              <Label htmlFor="title">Title (optional)</Label>
+              <Input
+                id="title"
+                value={title}
+                onChange={(e) => setTitle(e.target.value)}
+                placeholder="Enter a title for this update..."
+                disabled={isSubmitting}
+              />
+            </div>
+          </div>
+
           <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as 'write' | 'preview')} className="flex-1 flex flex-col">
             <TabsList className="grid w-full grid-cols-2">
               <TabsTrigger value="write" className="flex items-center gap-2">

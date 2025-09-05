@@ -116,7 +116,7 @@ export function DesignEntryDialog({
     const uploadStartTime = Date.now();
     
     try {
-      console.log('🚀 [DESIGN_ENTRY_DIALOG] Starting design analysis process:', {
+      console.log('🚀 [DESIGN_ENTRY_DIALOG] Starting quick upload process:', {
         fileName: newImage.name,
         fileSize: newImage.size,
         fileType: newImage.type,
@@ -165,48 +165,14 @@ export function DesignEntryDialog({
         fileType: newImage.type
       });
       
-      // Generate a design name using AI
-      const nameResponse = await fetch('/api/generate-name', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          imageUrl,
-          context: '',
-          designProblem,
-        }),
-      });
-      
-      let generatedName = 'Design Entry';
-      if (nameResponse.ok) {
-        const nameData = await nameResponse.json();
-        generatedName = nameData.name || 'Design Entry';
-      }
-      
       // Use design problem as both context and inquiries 
       const inquiries = designProblem || '';
       
-      console.log('🧠 [DESIGN_ENTRY_DIALOG] Starting AI analysis...');
-      const analysisStartTime = Date.now();
-      
-      // Generate advice using OpenAI API
-      const { advice } = await generateAdvice(imageUrl, '', inquiries, globalSettings);
-      
-      const analysisTime = Date.now() - analysisStartTime;
-      console.log(`✅ [DESIGN_ENTRY_DIALOG] Analysis completed in ${analysisTime}ms:`, {
-        adviceLength: advice.length
-      });
-      
-      // Track design analysis completion
-      AnalyticsService.trackDesignAnalysis(user?.id || null, {
-        hasContext: false,
-        hasInquiries: !!inquiries,
-        analysisLength: advice.length
-      });
+      // Skip AI name generation for speed - use simple fallback
+      const generatedName = 'Design Entry';
 
-      // Save entry to database
-      console.log('💾 [DESIGN_ENTRY_DIALOG] Saving entry to database...');
+      // Save entry to database WITHOUT advice first (quick save)
+      console.log('💾 [DESIGN_ENTRY_DIALOG] Saving entry to database (without advice)...');
       const dbSaveStartTime = Date.now();
       
       const entryUrl = `/api/entries?user_id=${user.id}`;
@@ -221,7 +187,7 @@ export function DesignEntryDialog({
           image_path: imagePath,
           context: null,
           inquiries: designProblem || null,
-          advice,
+          advice: '', // Empty advice initially
         }),
       });
       
@@ -242,28 +208,91 @@ export function DesignEntryDialog({
       const newEntry = await entryResponse.json();
       newEntry.design_versions = [];
       
+      // Immediately show the entry to the user
       onEntryCreated(newEntry);
       
-      const totalProcessTime = Date.now() - uploadStartTime;
-      console.log(`🎉 [DESIGN_ENTRY_DIALOG] Complete process finished successfully in ${totalProcessTime}ms`);
+      const uploadProcessTime = Date.now() - uploadStartTime;
+      console.log(`⚡ [DESIGN_ENTRY_DIALOG] Quick upload process finished in ${uploadProcessTime}ms`);
       
       // Reset form and close dialog
       setNewImage(null);
       setDesignProblem('');
       setError(null);
       onClose();
+
+      // Start background advice generation (fire and forget)
+      console.log('🧠 [DESIGN_ENTRY_DIALOG] Starting background AI analysis...');
+      generateAdviceInBackground(newEntry.id, imageUrl, '', inquiries, globalSettings, user.id);
+      
     } catch (error) {
       const totalProcessTime = Date.now() - uploadStartTime;
-      console.error(`💥 [DESIGN_ENTRY_DIALOG] Complete process failed after ${totalProcessTime}ms:`, error);
+      console.error(`💥 [DESIGN_ENTRY_DIALOG] Upload process failed after ${totalProcessTime}ms:`, error);
       
       const errorMessage = error instanceof Error 
         ? error.message 
-        : 'Failed to generate AI-powered design advice';
+        : 'Failed to upload and save design entry';
       
       setError(errorMessage);
     } finally {
       setIsAnalyzing(false);
       onLoadingChange?.(false);
+    }
+  };
+
+  // Background function to generate advice after entry is created
+  const generateAdviceInBackground = async (
+    entryId: string, 
+    imageUrl: string, 
+    context: string, 
+    inquiries: string, 
+    globalSettings: string,
+    userId: string
+  ) => {
+    try {
+      const analysisStartTime = Date.now();
+      
+      // Generate advice using OpenAI API
+      const { advice } = await generateAdvice(imageUrl, context, inquiries, globalSettings);
+      
+      const analysisTime = Date.now() - analysisStartTime;
+      console.log(`✅ [BACKGROUND] Analysis completed in ${analysisTime}ms:`, {
+        entryId,
+        adviceLength: advice.length
+      });
+      
+      // Track design analysis completion
+      AnalyticsService.trackDesignAnalysis(userId, {
+        hasContext: !!context,
+        hasInquiries: !!inquiries,
+        analysisLength: advice.length
+      });
+
+      // Update the entry with advice
+      const updateResponse = await fetch(`/api/entries/${entryId}`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          advice,
+        }),
+      });
+      
+      if (!updateResponse.ok) {
+        const errorData = await updateResponse.text();
+        console.error(`💥 [BACKGROUND] Failed to update entry with advice:`, {
+          entryId,
+          status: updateResponse.status,
+          error: errorData
+        });
+        return;
+      }
+      
+      console.log(`✅ [BACKGROUND] Entry updated with advice successfully:`, { entryId });
+      
+    } catch (error) {
+      console.error(`💥 [BACKGROUND] Background advice generation failed for entry ${entryId}:`, error);
+      // Don't show error to user since this is background - they already have the entry
     }
   };
 

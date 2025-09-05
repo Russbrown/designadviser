@@ -43,7 +43,7 @@ export function TextUpdateCard({ textUpdate, onClick }: TextUpdateCardProps) {
             {/* Title and Date */}
             <div className="flex flex-col gap-0.5 items-start justify-start w-full">
               <div className="font-medium text-[#23282a] text-[16px] leading-normal">
-                Text Update
+                {textUpdate.title || 'Text Update'}
               </div>
               <div className="font-normal text-[#8f9699] text-[11px] leading-normal">
                 {formatDate(textUpdate.created_at)}

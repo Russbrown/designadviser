@@ -25,6 +25,7 @@ export interface DesignVersion {
 export interface TextUpdate {
   id: string;
   created_at: string;
+  title: string | null;
   content: string; // Markdown content
   user_id: string | null;
 }
