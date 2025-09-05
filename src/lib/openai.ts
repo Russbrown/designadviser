@@ -41,11 +41,63 @@ export async function analyzeDesignVersion({
   versionNotes,
   globalSettings,
 }: DesignVersionComparisonRequest): Promise<string> {
+  const startTime = Date.now();
+  console.log('🔄 [ANALYZE_VERSION] Starting version comparison analysis');
+  
   try {
     // Check if OpenAI is available
     if (!openai) {
+      console.error('❌ [ANALYZE_VERSION] OpenAI client not available - missing API key');
       throw new Error('OPENAI_API_KEY is required in environment variables');
     }
+    
+    console.log('📋 [ANALYZE_VERSION] Request parameters:', {
+      newImageUrl: newImageUrl ? `${newImageUrl.substring(0, 50)}...` : 'null',
+      previousImageUrl: previousImageUrl ? `${previousImageUrl.substring(0, 50)}...` : 'null',
+      contextLength: context?.length || 0,
+      inquiriesLength: inquiries?.length || 0,
+      versionNotesLength: versionNotes?.length || 0,
+      globalSettingsLength: globalSettings?.length || 0,
+      previousAdviceLength: previousAdvice?.length || 0
+    });
+    
+    // Validate image URLs (same validation as main analyze function)
+    const validateImageUrl = async (url: string, name: string) => {
+      if (url) {
+        const isValidUrl = url.startsWith('http://') || url.startsWith('https://');
+        const isSupabaseUrl = url.includes('supabase');
+        console.log(`🔍 [ANALYZE_VERSION] ${name} URL validation:`, {
+          isValidUrl,
+          isSupabaseUrl,
+          urlLength: url.length
+        });
+        
+        try {
+          console.log(`🌐 [ANALYZE_VERSION] Testing ${name} URL accessibility...`);
+          const headResponse = await fetch(url, { method: 'HEAD' });
+          console.log(`📡 [ANALYZE_VERSION] ${name} URL accessibility test:`, {
+            status: headResponse.status,
+            statusText: headResponse.statusText,
+            contentType: headResponse.headers.get('content-type'),
+            accessible: headResponse.ok
+          });
+          
+          if (!headResponse.ok) {
+            console.error(`⚠️ [ANALYZE_VERSION] ${name} URL is not publicly accessible!`, {
+              status: headResponse.status,
+              statusText: headResponse.statusText
+            });
+          }
+        } catch (urlError) {
+          console.error(`💥 [ANALYZE_VERSION] Failed to test ${name} URL accessibility:`, urlError);
+        }
+      }
+    };
+    
+    await Promise.all([
+      validateImageUrl(newImageUrl, 'New image'),
+      validateImageUrl(previousImageUrl, 'Previous image')
+    ]);
 
     // Use senior critique prompt for consistent high-quality analysis
     const baseSystemPrompt = SENIOR_CRITIQUE_PROMPT.system;
@@ -130,47 +182,71 @@ export async function analyzeDesignVersion({
       content: userContent,
     });
 
+    console.log('🚀 [ANALYZE_VERSION] Calling OpenAI API with model: gpt-4o');
+    console.log('📋 [ANALYZE_VERSION] Request payload:', {
+      model: 'gpt-4o',
+      messagesCount: messages.length,
+      messageStructure: messages.map(msg => ({
+        role: msg.role,
+        contentType: Array.isArray(msg.content) ? 'array' : 'string',
+        contentLength: Array.isArray(msg.content) ? msg.content.length : msg.content?.length
+      })),
+      max_tokens: 2000,
+      temperature: 0.7
+    });
+    
+    const apiCallStart = Date.now();
+
     const response = await openai.chat.completions.create({
-      model: process.env.OPENAI_MODEL || 'gpt-4o',
+      model: 'gpt-4o', // Use the same working model as main analyze endpoint
       messages,
-      max_tokens: 1500,
+      max_tokens: 2000, // Increase tokens for version comparison analysis
       temperature: 0.7,
     });
-
-    return response.choices[0]?.message?.content || 'Unable to analyze the design versions. Please try again.';
-  } catch (error) {
-    console.error('OpenAI API error in version comparison:', error);
-    console.error('Error details:', JSON.stringify(error, null, 2));
     
-    if (error instanceof Error) {
-      // More specific error handling (same as original function)
-      if (error.message.includes('401') || error.message.includes('API key') || error.message.includes('Unauthorized')) {
-        throw new Error('Invalid OpenAI API key. Please check your API key in .env.local file.');
+    const apiCallTime = Date.now() - apiCallStart;
+    const totalTime = Date.now() - startTime;
+    
+    const result = response.choices[0]?.message?.content || 'Unable to analyze the design versions. Please try again.';
+    
+    console.log('✅ [ANALYZE_VERSION] API call completed successfully:', {
+      apiCallTime: `${apiCallTime}ms`,
+      totalTime: `${totalTime}ms`,
+      responseLength: result.length,
+      tokensUsed: response.usage ? `${response.usage.total_tokens} total (${response.usage.prompt_tokens} prompt + ${response.usage.completion_tokens} completion)` : 'unknown'
+    });
+
+    return result;
+  } catch (error) {
+    const totalTime = Date.now() - startTime;
+    console.error(`💥 [ANALYZE_VERSION] API call failed after ${totalTime}ms:`, error);
+    
+    // Detailed error logging for debugging (same as working function)
+    if (error && typeof error === 'object') {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const errorObj = error as any;
+      console.error('🔍 [ANALYZE_VERSION] Detailed error analysis:', {
+        message: errorObj.message || 'No message',
+        status: errorObj.status || 'No status',
+        code: errorObj.code || 'No code',
+        type: errorObj.type || 'No type',
+        error: errorObj.error || 'No error field',
+        stack: errorObj.stack || 'No stack'
+      });
+      
+      // Check if it's a specific model error
+      if (errorObj.message && errorObj.message.includes('model')) {
+        console.error('🤔 [ANALYZE_VERSION] Model error detected. Current model: gpt-4o');
       }
       
-      if (error.message.includes('429') || error.message.includes('quota') || error.message.includes('rate limit')) {
-        throw new Error('OpenAI API rate limit exceeded. Please wait a moment and try again.');
-      }
-      
-      if (error.message.includes('400') || error.message.includes('Bad Request')) {
-        throw new Error('Invalid request to OpenAI API. The images may be too large or in an unsupported format.');
-      }
-      
-      if (error.message.includes('500') || error.message.includes('502') || error.message.includes('503')) {
-        throw new Error('OpenAI API is temporarily unavailable. Please try again in a few moments.');
-      }
-      
-      if (error.message.includes('network') || error.message.includes('fetch')) {
-        throw new Error('Network error. Please check your internet connection and try again.');
-      }
-      
-      // Pass through the original error message if it's descriptive
-      if (error.message.length > 10) {
-        throw new Error(`OpenAI API error: ${error.message}`);
+      // Check if it's an image format error  
+      if (errorObj.message && (errorObj.message.includes('image') || errorObj.message.includes('format'))) {
+        console.error('🖼️ [ANALYZE_VERSION] Image format error detected');
       }
     }
     
-    throw new Error('Failed to analyze design versions with AI. Please try again or check your API configuration.');
+    // Don't throw a generic error - throw the specific error for better debugging (same as working function)
+    throw error;
   }
 }
 
