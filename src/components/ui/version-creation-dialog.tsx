@@ -145,6 +145,7 @@ export function VersionCreationDialog({
         previousImageUrl,
         previousAdvice || '',
         '', // previousSeniorCritique no longer used
+        '', // previousGPT5Advice no longer used
         entry.context || '',
         entry.inquiries || '',
         notes,
