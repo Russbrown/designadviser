@@ -29,9 +29,6 @@ interface VersionCreationDialogProps {
     image_url: string | null;
     image_path: string | null;
     advice: string;
-    senior_critique?: string;
-    gpt5_advice?: string;
-    mini_advice?: string;
     entry_id: string;
     notes: string | null;
   }) => void;
@@ -138,18 +135,16 @@ export function VersionCreationDialog({
       
       const previousImageUrl = latestVersion ? latestVersion.image_url : entry.image_url;
       const previousAdvice = latestVersion ? latestVersion.advice : entry.advice;
-      const previousSeniorCritique = latestVersion ? latestVersion.senior_critique : entry.senior_critique;
-      const previousGPT5Advice = latestVersion ? ('gpt5_advice' in latestVersion ? latestVersion.gpt5_advice : undefined) : entry.gpt5_advice;
       
       if (!previousImageUrl) {
         throw new Error('Previous design image not found');
       }
       
-      const { advice, seniorCritique, gpt5Advice, miniAdvice } = await generateVersionAdvice(
+      const { advice } = await generateVersionAdvice(
         imageUrl,
         previousImageUrl,
         previousAdvice || '',
-        previousSeniorCritique || '',
+        '', // previousSeniorCritique no longer used
         entry.context || '',
         entry.inquiries || '',
         notes,
@@ -166,9 +161,6 @@ export function VersionCreationDialog({
           image_url: imageUrl,
           image_path: imagePath,
           advice,
-          senior_critique: FEATURES.GENERATE_MULTIPLE_ADVICE ? seniorCritique : null,
-          gpt5_advice: FEATURES.GENERATE_MULTIPLE_ADVICE ? gpt5Advice : null,
-          mini_advice: FEATURES.GENERATE_MULTIPLE_ADVICE ? miniAdvice : null,
           notes: notes || null,
         }),
       });
