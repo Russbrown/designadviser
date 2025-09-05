@@ -172,13 +172,13 @@ export default function Home() {
     setIsAnalyzing(true);
     setError(null); // Clear any previous errors
     
+    const uploadStartTime = Date.now();
+    
     try {
       // First upload the image to Supabase storage
       console.log('📤 [CLIENT] Starting file upload to Supabase...');
       const formData = new FormData();
       formData.append('file', currentImage);
-      
-      const uploadStartTime = Date.now();
       
       const uploadResponse = await fetch('/api/upload', {
         method: 'POST',
@@ -304,7 +304,7 @@ export default function Home() {
       // Navigate to the newly created entry
       setSelectedEntry(newEntry);
     } catch (error) {
-      const totalProcessTime = uploadStartTime ? Date.now() - uploadStartTime : 0;
+      const totalProcessTime = Date.now() - uploadStartTime;
       console.error(`💥 [CLIENT] Complete process failed after ${totalProcessTime}ms:`, error);
       
       // Set error message to display to user
