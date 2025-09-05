@@ -26,9 +26,6 @@ Return this structure exactly:
 ## Copy check
 - <2–4 bullets> - Grammar and typo check
 
-## What’s Working
-- <2–4 bullets>
-
 ## What to Fix (highest impact first)
 1) <Issue name> — <why it hurts>  
    **Do this:** <specific UI change with values>  
@@ -38,17 +35,8 @@ Return this structure exactly:
 
 2) ...
 
-## Visual & Type Details
-- Grid & spacing: <values / tokens>
-- Type scale: <font sizes/weights/line-heights>
-- Color roles: <primary/secondary/background/surfaces/states + contrast checks>
-- Component/states: <buttons, inputs, errors, empty states>
-
-## Risks & Trade-offs
-- <1–3 bullets>
-
 ## If I Had 1 Hour
-- <3–5 concrete tasks in order>
+- <3–5 concrete design tasks in order, avoid tasks outside design like usability testing or user research, or meeting engineers>
 `,
 
   // User prompt template for senior critique

@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useCallback, useEffect } from 'react';
-import { DesignEntry } from '@/types';
+import { DesignEntry, TextUpdate, TimelineItem, isDesignEntry, isTextUpdate } from '@/types';
 import { ImageUpload } from '@/components/ui/image-upload';
 import { AdviceForm } from '@/components/ui/advice-form';
 import { Timeline } from '@/components/ui/timeline';
@@ -9,11 +9,12 @@ import { DesignViewer } from '@/components/ui/design-viewer';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { VersionCreationDialog } from '@/components/ui/version-creation-dialog';
+import { TextUpdateDialog } from '@/components/ui/text-update-dialog';
 import { UserMenu } from '@/components/ui/user-menu';
 import { LoadingOverlay } from '@/components/ui/loading-overlay';
 import { SettingsModal } from '@/components/ui/settings-modal';
 import { useAuth } from '@/contexts/auth-context';
-import { Settings } from 'lucide-react';
+import { Settings, Plus } from 'lucide-react';
 import { ErrorHandler } from '@/components/error-handler';
 import { AnalyticsService } from '@/lib/analytics';
 import { FEATURES } from '@/lib/environment';
@@ -86,6 +87,8 @@ const generateAdvice = async (imageUrl: string, context: string, inquiries: stri
 export default function Home() {
   const { user, loading: authLoading } = useAuth();
   const [entries, setEntries] = useState<DesignEntry[]>([]);
+  const [textUpdates, setTextUpdates] = useState<TextUpdate[]>([]);
+  const [timelineItems, setTimelineItems] = useState<TimelineItem[]>([]);
   const [globalSettings, setGlobalSettings] = useState('');
   const [selectedEntry, setSelectedEntry] = useState<DesignEntry | null>(null);
   const [currentImage, setCurrentImage] = useState<File | null>(null);
@@ -98,6 +101,7 @@ export default function Home() {
   // Version creation state
   const [versionDialogOpen, setVersionDialogOpen] = useState(false);
   const [versionTargetEntry, setVersionTargetEntry] = useState<DesignEntry | null>(null);
+  const [textUpdateDialogOpen, setTextUpdateDialogOpen] = useState(false);
 
   // Track pageview on mount
   useEffect(() => {
@@ -111,9 +115,15 @@ export default function Home() {
       if (authLoading) return;
       
       try {
-        // Load entries - server now handles user filtering securely
+        // Load entries and text updates in parallel
         const entriesUrl = user?.id ? `/api/entries?user_id=${user.id}` : '/api/entries';
-        const entriesResponse = await fetch(entriesUrl);
+        const textUpdatesUrl = user?.id ? `/api/text-updates?user_id=${user.id}` : '/api/text-updates';
+        
+        const [entriesResponse, textUpdatesResponse] = await Promise.all([
+          fetch(entriesUrl),
+          fetch(textUpdatesUrl)
+        ]);
+        
         if (entriesResponse.ok) {
           const data = await entriesResponse.json();
           
@@ -126,6 +136,12 @@ export default function Home() {
             })) || []
           })));
           setEntries(data);
+        }
+
+        if (textUpdatesResponse.ok) {
+          const textUpdatesData = await textUpdatesResponse.json();
+          console.log('Loaded text updates from API:', textUpdatesData.length);
+          setTextUpdates(textUpdatesData);
         }
 
         // Load settings
@@ -146,6 +162,12 @@ export default function Home() {
     loadData();
   }, [authLoading, user?.id]);
 
+  // Combine entries and text updates into chronologically sorted timeline items
+  useEffect(() => {
+    const combined: TimelineItem[] = [...entries, ...textUpdates];
+    combined.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+    setTimelineItems(combined);
+  }, [entries, textUpdates]);
 
   const handleImageUpload = useCallback((file: File) => {
     setCurrentImage(file);
@@ -384,6 +406,17 @@ export default function Home() {
     setVersionTargetEntry(null);
   }, []);
 
+  const handleTextUpdateCreated = useCallback((newTextUpdate: TextUpdate) => {
+    setTextUpdates(prev => [newTextUpdate, ...prev]);
+  }, []);
+
+  const handleTimelineItemSelect = useCallback((item: TimelineItem) => {
+    if (isDesignEntry(item)) {
+      handleEntrySelect(item);
+    }
+    // Text updates don't have individual views, they're just displayed in timeline
+  }, [handleEntrySelect]);
+
   const handleDeleteEntry = useCallback(async (entryId: string) => {
     try {
       const response = await fetch(`/api/entries/${entryId}`, {
@@ -476,6 +509,16 @@ export default function Home() {
           <Button 
             variant="outline" 
             size="sm"
+            onClick={() => setTextUpdateDialogOpen(true)}
+            className="text-xs"
+            disabled={!user}
+          >
+            <Plus className="h-4 w-4 mr-2" />
+            Add Text Update
+          </Button>
+          <Button 
+            variant="outline" 
+            size="sm"
             onClick={() => setSettingsModalOpen(true)}
             className="text-xs"
           >
@@ -560,7 +603,7 @@ export default function Home() {
           </div>
         ) : (
           <Timeline 
-            entries={entries}
+            timelineItems={timelineItems}
             onEntrySelect={handleEntrySelect}
             onNewVersion={handleNewVersion}
             onDeleteEntry={handleDeleteEntry}
@@ -588,6 +631,13 @@ export default function Home() {
           ? "Our AI is analyzing your updated design and generating fresh insights for this version."
           : "Our AI is reviewing your design and preparing personalized feedback. This usually takes 10-20 seconds."
         }
+      />
+
+      {/* Text Update Dialog */}
+      <TextUpdateDialog
+        isOpen={textUpdateDialogOpen}
+        onClose={() => setTextUpdateDialogOpen(false)}
+        onTextUpdateCreated={handleTextUpdateCreated}
       />
 
       {/* Settings Modal */}

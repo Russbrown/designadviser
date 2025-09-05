@@ -21,3 +21,22 @@ export interface DesignVersion {
   entry_id: string;
   notes: string | null;
 }
+
+export interface TextUpdate {
+  id: string;
+  created_at: string;
+  content: string; // Markdown content
+  user_id: string | null;
+}
+
+// Combined timeline item type for chronological sorting
+export type TimelineItem = DesignEntry | TextUpdate;
+
+// Type guard functions
+export function isDesignEntry(item: TimelineItem): item is DesignEntry {
+  return 'image_url' in item;
+}
+
+export function isTextUpdate(item: TimelineItem): item is TextUpdate {
+  return 'content' in item && !('image_url' in item);
+}

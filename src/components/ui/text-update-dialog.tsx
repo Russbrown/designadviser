@@ -1,0 +1,177 @@
+'use client';
+
+import { useState } from 'react';
+import { Button } from '@/components/ui/button';
+import { Textarea } from '@/components/ui/textarea';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
+import { useAuth } from '@/contexts/auth-context';
+import { MarkdownRenderer } from '@/components/ui/markdown-renderer';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Eye, Edit3 } from 'lucide-react';
+
+interface TextUpdateDialogProps {
+  isOpen: boolean;
+  onClose: () => void;
+  onTextUpdateCreated: (textUpdate: {
+    id: string;
+    created_at: string;
+    content: string;
+    user_id: string | null;
+  }) => void;
+  onLoadingChange?: (isLoading: boolean) => void;
+}
+
+export function TextUpdateDialog({
+  isOpen,
+  onClose,
+  onTextUpdateCreated,
+  onLoadingChange
+}: TextUpdateDialogProps) {
+  const { user } = useAuth();
+  const [content, setContent] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [activeTab, setActiveTab] = useState<'write' | 'preview'>('write');
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!user) {
+      setError('You must be signed in to create text updates');
+      return;
+    }
+
+    if (!content.trim()) {
+      setError('Please enter some content');
+      return;
+    }
+
+    setIsSubmitting(true);
+    setError(null);
+    onLoadingChange?.(true);
+
+    try {
+      const response = await fetch(`/api/text-updates?user_id=${user.id}`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          content: content.trim(),
+        }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({ error: 'Unknown error' }));
+        throw new Error(errorData.error || 'Failed to create text update');
+      }
+
+      const newTextUpdate = await response.json();
+      
+      onTextUpdateCreated(newTextUpdate);
+      setContent('');
+      onClose();
+      
+    } catch (error) {
+      console.error('Failed to create text update:', error);
+      setError(error instanceof Error ? error.message : 'Failed to create text update');
+    } finally {
+      setIsSubmitting(false);
+      onLoadingChange?.(false);
+    }
+  };
+
+  const handleClose = () => {
+    if (!isSubmitting) {
+      setContent('');
+      setError(null);
+      setActiveTab('write');
+      onClose();
+    }
+  };
+
+  return (
+    <Dialog open={isOpen} onOpenChange={handleClose}>
+      <DialogContent className="max-w-4xl max-h-[80vh] overflow-hidden flex flex-col">
+        <DialogHeader>
+          <DialogTitle>Add Text Update</DialogTitle>
+          <DialogDescription>
+            Add a text update to your timeline. You can use Markdown formatting for rich text.
+          </DialogDescription>
+        </DialogHeader>
+
+        <form onSubmit={handleSubmit} className="flex-1 flex flex-col min-h-0">
+          <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as 'write' | 'preview')} className="flex-1 flex flex-col">
+            <TabsList className="grid w-full grid-cols-2">
+              <TabsTrigger value="write" className="flex items-center gap-2">
+                <Edit3 className="h-4 w-4" />
+                Write
+              </TabsTrigger>
+              <TabsTrigger value="preview" className="flex items-center gap-2">
+                <Eye className="h-4 w-4" />
+                Preview
+              </TabsTrigger>
+            </TabsList>
+            
+            <TabsContent value="write" className="flex-1 flex flex-col min-h-0 mt-4">
+              <Textarea
+                value={content}
+                onChange={(e) => setContent(e.target.value)}
+                placeholder="Write your update here... You can use Markdown formatting like **bold**, *italic*, ## headings, - lists, etc."
+                className="flex-1 min-h-[200px] resize-none font-mono text-sm"
+                disabled={isSubmitting}
+                autoFocus
+              />
+              
+              <div className="text-xs text-muted-foreground mt-2">
+                Supports Markdown formatting. Character count: {content.length}/10,000
+              </div>
+            </TabsContent>
+            
+            <TabsContent value="preview" className="flex-1 flex flex-col min-h-0 mt-4">
+              <div className="flex-1 min-h-[200px] border rounded-md p-4 overflow-y-auto bg-muted/10">
+                {content.trim() ? (
+                  <MarkdownRenderer content={content} />
+                ) : (
+                  <div className="text-muted-foreground italic text-center py-8">
+                    No content to preview. Switch to the Write tab to add content.
+                  </div>
+                )}
+              </div>
+            </TabsContent>
+          </Tabs>
+
+          {error && (
+            <div className="text-sm text-destructive mt-2 p-2 bg-destructive/10 rounded">
+              {error}
+            </div>
+          )}
+
+          <DialogFooter className="mt-4">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={handleClose}
+              disabled={isSubmitting}
+            >
+              Cancel
+            </Button>
+            <Button
+              type="submit"
+              disabled={isSubmitting || !content.trim()}
+            >
+              {isSubmitting ? 'Publishing...' : 'Publish Update'}
+            </Button>
+          </DialogFooter>
+        </form>
+      </DialogContent>
+    </Dialog>
+  );
+}
