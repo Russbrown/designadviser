@@ -38,12 +38,18 @@ export async function GET(request: NextRequest) {
 }
 
 export async function POST(request: NextRequest) {
+  const startTime = Date.now();
+  console.log('💾 [DB_SAVE] Starting database save operation');
+  
   try {
     // Verify user authentication
     const { searchParams } = new URL(request.url);
     const userId = searchParams.get('user_id');
     
+    console.log('🔐 [DB_SAVE] Authentication check:', { userId });
+    
     if (!userId || userId === 'null') {
+      console.log('❌ [DB_SAVE] Authentication failed - no user ID');
       return NextResponse.json(
         { error: 'Authentication required to create entries' },
         { status: 401 }
@@ -51,10 +57,17 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { name, image_url, image_path, context, inquiries, advice, senior_critique, mini_advice } = body;
+    const { name, image_url, image_path, context, inquiries, advice } = body;
     
-    // Log what we're receiving
-    console.log('Received entry data:', { name, image_url, image_path, context, inquiries, advice: !!advice, senior_critique: !!senior_critique, mini_advice: !!mini_advice });
+    console.log('📋 [DB_SAVE] Received entry data:', {
+      name: name || 'No name',
+      image_url: image_url ? `${image_url.substring(0, 50)}...` : 'No URL',
+      image_path: image_path || 'No path',
+      context: context || 'No context',
+      inquiries: inquiries || 'No inquiries',
+      adviceLength: advice?.length || 0,
+      adviceType: 'GPT-5 (optimized single call)'
+    });
 
     // Prepare the entry data
     const entryData: Record<string, unknown> = {
@@ -67,13 +80,17 @@ export async function POST(request: NextRequest) {
       user_id: userId
     };
 
-    // Add optional fields only if they exist
-    if (senior_critique) {
-      entryData.senior_critique = senior_critique;
-    }
-    if (mini_advice) {
-      entryData.mini_advice = mini_advice;
-    }
+    // Optimized: Only saving GPT-5 advice in main advice column
+    console.log('✅ [DB_SAVE] GPT-5 advice will be saved in main advice column:', advice?.length || 0, 'characters');
+
+    console.log('🚀 [DB_SAVE] Prepared entry data structure:', {
+      fieldsCount: Object.keys(entryData).length,
+      hasRequiredFields: !!(entryData.name && entryData.image_url && entryData.advice),
+      userId: entryData.user_id
+    });
+
+    console.log('💫 [DB_SAVE] Executing Supabase insert...');
+    const insertStart = Date.now();
 
     const { data, error } = await supabaseAdmin
       .from('design_entries')
@@ -81,11 +98,45 @@ export async function POST(request: NextRequest) {
       .select()
       .single();
 
-    if (error) throw error;
+    const insertTime = Date.now() - insertStart;
+
+    if (error) {
+      console.error('💥 [DB_SAVE] Supabase insert error:', {
+        insertTime: `${insertTime}ms`,
+        errorCode: error.code,
+        errorMessage: error.message,
+        errorDetails: error.details,
+        errorHint: error.hint,
+        fullError: error
+      });
+      throw error;
+    }
+
+    const totalTime = Date.now() - startTime;
+    console.log('✅ [DB_SAVE] Database save successful:', {
+      insertTime: `${insertTime}ms`,
+      totalTime: `${totalTime}ms`,
+      entryId: data.id
+    });
 
     return NextResponse.json(data);
   } catch (error) {
-    console.error('Error creating entry:', error);
+    const totalTime = Date.now() - startTime;
+    console.error(`💥 [DB_SAVE] Database save failed after ${totalTime}ms:`, error);
+    
+    // Detailed error logging
+    if (error && typeof error === 'object') {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const errorObj = error as any;
+      console.error('Detailed database error:', {
+        message: errorObj.message || 'No message',
+        code: errorObj.code || 'No code',
+        details: errorObj.details || 'No details',
+        hint: errorObj.hint || 'No hint',
+        stack: errorObj.stack || 'No stack'
+      });
+    }
+
     return NextResponse.json(
       { error: 'Failed to create entry', details: error instanceof Error ? error.message : 'Unknown error' },
       { status: 500 }

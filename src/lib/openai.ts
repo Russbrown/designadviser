@@ -1,5 +1,4 @@
 import OpenAI from 'openai';
-import { GENERAL_ANALYSIS_PROMPT } from './prompts/general-analysis';
 import { SENIOR_CRITIQUE_PROMPT } from './prompts/senior-critique';
 
 // Initialize OpenAI only if API key is available (not during build time)
@@ -32,99 +31,6 @@ export interface DesignNameGenerationRequest {
   designProblem: string;
 }
 
-export async function analyzeDesign({
-  imageUrl,
-  context,
-  inquiries,
-  globalSettings,
-}: DesignAnalysisRequest): Promise<string> {
-  try {
-
-    console.log(context);
-    // Check if OpenAI is available
-    if (!openai) {
-      throw new Error('OPENAI_API_KEY is required in environment variables');
-    }
-    // Use general analysis prompts
-    const systemPrompt = GENERAL_ANALYSIS_PROMPT.system(globalSettings);
-    const userPrompt = GENERAL_ANALYSIS_PROMPT.user(context, inquiries);
-
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const messages: any[] = [];
-    
-    // Only add system message if globalSettings is provided
-    if (systemPrompt) {
-      messages.push({
-        role: 'system',
-        content: systemPrompt,
-      });
-    }
-    
-    // Build user message content
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const userContent: any[] = [];
-    if (userPrompt) {
-      userContent.push({
-        type: 'text',
-        text: userPrompt,
-      });
-    }
-    userContent.push({
-      type: 'image_url',
-      image_url: {
-        url: imageUrl,
-        detail: 'high',
-      },
-    });
-    
-    messages.push({
-      role: 'user',
-      content: userContent,
-    });
-
-    const response = await openai.chat.completions.create({
-      model: process.env.OPENAI_MODEL || 'gpt-4o',
-      messages,
-      max_tokens: 1500,
-      temperature: 0.7,
-    });
-
-    return response.choices[0]?.message?.content || 'Unable to analyze the design. Please try again.';
-  } catch (error) {
-    console.error('OpenAI API error:', error);
-    console.error('Error details:', JSON.stringify(error, null, 2));
-    
-    if (error instanceof Error) {
-      // More specific error handling
-      if (error.message.includes('401') || error.message.includes('API key') || error.message.includes('Unauthorized')) {
-        throw new Error('Invalid OpenAI API key. Please check your API key in .env.local file.');
-      }
-      
-      if (error.message.includes('429') || error.message.includes('quota') || error.message.includes('rate limit')) {
-        throw new Error('OpenAI API rate limit exceeded. Please wait a moment and try again.');
-      }
-      
-      if (error.message.includes('400') || error.message.includes('Bad Request')) {
-        throw new Error('Invalid request to OpenAI API. The image may be too large or in an unsupported format.');
-      }
-      
-      if (error.message.includes('500') || error.message.includes('502') || error.message.includes('503')) {
-        throw new Error('OpenAI API is temporarily unavailable. Please try again in a few moments.');
-      }
-      
-      if (error.message.includes('network') || error.message.includes('fetch')) {
-        throw new Error('Network error. Please check your internet connection and try again.');
-      }
-      
-      // Pass through the original error message if it's descriptive
-      if (error.message.length > 10) {
-        throw new Error(`OpenAI API error: ${error.message}`);
-      }
-    }
-    
-    throw new Error('Failed to analyze design with AI. Please try again or check your API configuration.');
-  }
-}
 
 export async function analyzeDesignVersion({
   newImageUrl,
@@ -141,9 +47,39 @@ export async function analyzeDesignVersion({
       throw new Error('OPENAI_API_KEY is required in environment variables');
     }
 
-    // Use general analysis version comparison prompts
-    const systemPrompt = GENERAL_ANALYSIS_PROMPT.versionSystem(globalSettings);
-    const userPrompt = GENERAL_ANALYSIS_PROMPT.versionUser(context, inquiries, versionNotes, previousAdvice);
+    // Use senior critique prompt for consistent high-quality analysis
+    const baseSystemPrompt = SENIOR_CRITIQUE_PROMPT.system;
+    const systemPrompt = globalSettings ? 
+      `${baseSystemPrompt}\n\nAdditional guidance: ${globalSettings}\n\nYou are analyzing a new version of a design. Focus on comparing the changes between the previous and current versions, and provide specific, actionable advice based on the improvements or areas that need attention. Always keep the original design problem in mind and assess how well each version addresses that core challenge.` :
+      `${baseSystemPrompt}\n\nYou are analyzing a new version of a design. Compare the changes between the previous and current versions, and provide specific, actionable advice based on the improvements or areas that need attention. Always keep the original design problem in mind and assess how well each version addresses that core challenge.`;
+
+    // Build version comparison prompt
+    const userContext = [];
+    if (inquiries) {
+      userContext.push(`ORIGINAL DESIGN PROBLEM: ${inquiries}`);
+      userContext.push('↳ This is the core design challenge that needs to be addressed throughout all versions.');
+    }
+    if (context) {
+      userContext.push(`Original Context: ${context}`);
+    }
+    if (versionNotes) {
+      userContext.push(`Changes Made in This Version: ${versionNotes}`);
+    }
+    if (previousAdvice) {
+      userContext.push(`Previous Design Analysis: ${previousAdvice}`);
+    }
+    
+    userContext.push('Please analyze both designs and provide specific feedback on:');
+    userContext.push('1. What improvements have been made since the previous version');
+    userContext.push('2. Areas where the design has progressed well');
+    userContext.push('3. How well this version addresses the ORIGINAL DESIGN PROBLEM stated above');
+    userContext.push('4. New issues or opportunities for improvement in this version');
+    userContext.push('5. How well the changes address any issues mentioned in the previous analysis');
+    userContext.push('6. Specific actionable recommendations for the next iteration that keep the original design problem in mind');
+    userContext.push('');
+    userContext.push('Structure your response with clear sections and be specific about visual changes you can observe.');
+    
+    const userPrompt = userContext.join('\n\n');
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const messages: any[] = [];
@@ -238,93 +174,6 @@ export async function analyzeDesignVersion({
   }
 }
 
-export async function generateSeniorCritique({
-  imageUrl,
-  context,
-  inquiries,
-  globalSettings,
-}: DesignAnalysisRequest): Promise<string> {
-  try {
-    // Check if OpenAI is available
-    if (!openai) {
-      throw new Error('OPENAI_API_KEY is required in environment variables');
-    }
-
-    // Use senior critique prompts
-    const systemPrompt = SENIOR_CRITIQUE_PROMPT.system;
-    const userPrompt = SENIOR_CRITIQUE_PROMPT.user(context, inquiries, globalSettings);
-
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const messages: any[] = [];
-    
-    messages.push({
-      role: 'system',
-      content: systemPrompt,
-    });
-    
-    // Build user message content
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const userContent: any[] = [];
-    userContent.push({
-      type: 'text',
-      text: userPrompt,
-    });
-    userContent.push({
-      type: 'image_url',
-      image_url: {
-        url: imageUrl,
-        detail: 'high',
-      },
-    });
-    
-    messages.push({
-      role: 'user',
-      content: userContent,
-    });
-
-    const response = await openai.chat.completions.create({
-      model: process.env.OPENAI_MODEL || 'gpt-4o',
-      messages,
-      max_tokens: 1500,
-      temperature: 0.7,
-    });
-
-    return response.choices[0]?.message?.content || 'Unable to generate senior designer critique. Please try again.';
-  } catch (error) {
-    console.error('OpenAI API error in senior critique:', error);
-    console.error('Error details:', JSON.stringify(error, null, 2));
-    
-    if (error instanceof Error) {
-      // Same error handling as other functions
-      if (error.message.includes('401') || error.message.includes('API key') || error.message.includes('Unauthorized')) {
-        throw new Error('Invalid OpenAI API key. Please check your API key in .env.local file.');
-      }
-      
-      if (error.message.includes('429') || error.message.includes('quota') || error.message.includes('rate limit')) {
-        throw new Error('OpenAI API rate limit exceeded. Please wait a moment and try again.');
-      }
-      
-      if (error.message.includes('400') || error.message.includes('Bad Request')) {
-        throw new Error('Invalid request to OpenAI API. The image may be too large or in an unsupported format.');
-      }
-      
-      if (error.message.includes('500') || error.message.includes('502') || error.message.includes('503')) {
-        throw new Error('OpenAI API is temporarily unavailable. Please try again in a few moments.');
-      }
-      
-      if (error.message.includes('network') || error.message.includes('fetch')) {
-        throw new Error('Network error. Please check your internet connection and try again.');
-      }
-      
-      // Pass through the original error message if it's descriptive
-      if (error.message.length > 10) {
-        throw new Error(`OpenAI API error: ${error.message}`);
-      }
-    }
-    
-    throw new Error('Failed to generate senior designer critique. Please try again or check your API configuration.');
-  }
-}
 
 export async function generateSeniorCritiqueVersion({
   newImageUrl,
@@ -395,10 +244,10 @@ export async function generateSeniorCritiqueVersion({
     });
 
     const response = await openai.chat.completions.create({
-      model: process.env.OPENAI_MODEL || 'gpt-4o',
+      model: 'gpt-5',
       messages,
-      max_tokens: 1500,
-      temperature: 0.7,
+      max_completion_tokens: 1500, // GPT-5 uses max_completion_tokens instead of max_tokens
+      // GPT-5 only supports default temperature (1), so we omit the temperature parameter
     });
 
     return response.choices[0]?.message?.content || 'Unable to generate senior designer critique for this version. Please try again.';
@@ -437,226 +286,75 @@ export async function generateSeniorCritiqueVersion({
   }
 }
 
-export async function preprocessImage({
-  imageUrl,
-}: { imageUrl: string }): Promise<string> {
-  try {
-    // Check if OpenAI is available
-    if (!openai) {
-      throw new Error('OPENAI_API_KEY is required in environment variables');
-    }
 
-    // Image Pre-Processor System Prompt
-    const systemPrompt = `You are a vision-to-structure extractor for UI and product design.
-Your job is to take a screenshot or image of a design and translate it into structured JSON that describes the layout, hierarchy, typography, colors, and content exactly as they appear.
-You do not give opinions, critique, or suggestions. You only describe.
-
-Output Requirements:
-- Output only valid JSON matching the schema below
-- Be strictly descriptive — no adjectives implying quality (e.g., "good", "bad", "beautiful")
-- Infer cautiously; if unsure, mark "low_confidence": true or add a note to "confidence_notes"
-- Extract visible copy verbatim (don't correct typos)
-- Normalize measurements to pixels and round to whole numbers
-- Merge near-duplicate colors (ΔE small) but keep distinct if used for different UI roles
-- Identify common UI patterns ("3-up cards", "sidebar + content", "form with inline validation", etc.)
-- If text is unreadable, set value to null and add a note in "confidence_notes"
-
-Convert the provided UI screenshot into structured JSON that matches the schema exactly.
-Be strictly factual and descriptive.
-Do not make design recommendations or judgments.
-If any detail is unclear, mark as null and note in "confidence_notes".
-Keep output concise but complete enough for another system to understand the design without seeing the image.
-Include every distinct section and element with IDs so relationships can be mapped.
-Output only the JSON.
-
-Schema:
-{
-  "document": {
-    "type": "screen|page|modal|component",
-    "breakpoints": ["desktop","tablet","mobile"],
-    "state": "default|hover|active|empty|error|success|null"
-  },
-  "purpose": "string|null",
-  "audience": "string|null",
-  "layout": [
-    {
-      "id": "string",
-      "role": "section|header|footer|sidebar|content|hero|form|gallery|other",
-      "pattern": "string|null",
-      "bounds": {"x":0,"y":0,"w":0,"h":0},
-      "children": ["element-id-1","element-id-2"]
-    }
-  ],
-  "elements": [
-    {
-      "id": "string",
-      "type": "text|button|image|icon|input|card|list|nav|video|other",
-      "text": "string|null",
-      "font_family": "string|null",
-      "font_size_px": 0,
-      "font_weight": 0,
-      "color_hex": "#000000",
-      "alignment": "left|center|right|justify|null",
-      "size": {"w":0,"h":0}
-    }
-  ],
-  "colors": {
-    "palette": [
-      {"hex":"#000000","usage":["headline","body","cta","background"],"approx_role":"string|null"}
-    ],
-    "contrast_pairs": [
-      {"fg":"#000000","bg":"#FFFFFF","ratio": 0}
-    ]
-  },
-  "typography": {
-    "scale_px": [0],
-    "line_heights": {"font_size_px":0}
-  },
-  "copy": {
-    "headlines": ["string"],
-    "subheads": ["string"],
-    "body_samples": ["string"]
-  },
-  "navigation": {
-    "items": ["string"],
-    "cta": "string|null"
-  },
-  "media": [
-    {
-      "id": "string",
-      "kind": "image|illustration|video|icon",
-      "dominance_pct": 0
-    }
-  ],
-  "confidence_notes": ["string"]
-}`;
-
-    const userPrompt = 'Please analyze this design image and convert it to structured JSON following the exact schema provided.';
-
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const messages: any[] = [];
-    
-    messages.push({
-      role: 'system',
-      content: systemPrompt,
-    });
-    
-    // Build user message with image
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const userContent: any[] = [];
-    userContent.push({
-      type: 'text',
-      text: userPrompt,
-    });
-    userContent.push({
-      type: 'image_url',
-      image_url: {
-        url: imageUrl,
-        detail: 'high',
-      },
-    });
-    
-    messages.push({
-      role: 'user',
-      content: userContent,
-    });
-
-    const response = await openai.chat.completions.create({
-      model: process.env.OPENAI_MODEL || 'gpt-4o',
-      messages,
-      max_tokens: 2000,
-      temperature: 0.1, // Low temperature for consistent structured output
-    });
-
-    return response.choices[0]?.message?.content || '{"error": "Unable to process image structure"}';
-  } catch (error) {
-    console.error('OpenAI API error in image preprocessing:', error);
-    
-    if (error instanceof Error) {
-      // Same error handling as other functions
-      if (error.message.includes('401') || error.message.includes('API key') || error.message.includes('Unauthorized')) {
-        throw new Error('Invalid OpenAI API key. Please check your API key in .env.local file.');
-      }
-      
-      if (error.message.includes('429') || error.message.includes('quota') || error.message.includes('rate limit')) {
-        throw new Error('OpenAI API rate limit exceeded. Please wait a moment and try again.');
-      }
-      
-      if (error.message.includes('400') || error.message.includes('Bad Request')) {
-        throw new Error('Invalid request to OpenAI API. The image may be too large or in an unsupported format.');
-      }
-      
-      if (error.message.includes('500') || error.message.includes('502') || error.message.includes('503')) {
-        throw new Error('OpenAI API is temporarily unavailable. Please try again in a few moments.');
-      }
-      
-      if (error.message.includes('network') || error.message.includes('fetch')) {
-        throw new Error('Network error. Please check your internet connection and try again.');
-      }
-      
-      // Pass through the original error message if it's descriptive
-      if (error.message.length > 10) {
-        throw new Error(`OpenAI API error: ${error.message}`);
-      }
-    }
-    
-    throw new Error('Failed to preprocess image structure. Please try again or check your API configuration.');
-  }
-}
-
-export async function generatePreprocessedAdvice({
+export async function generateGPT5Advice({
   imageUrl,
   context,
   inquiries,
   globalSettings,
-  preprocessedData,
-}: DesignAnalysisRequest & { preprocessedData: string }): Promise<string> {
+}: DesignAnalysisRequest): Promise<string> {
+  const startTime = Date.now();
+  console.log('🤖 [GPT5_ADVICE] Starting GPT-5 advice generation');
+  
   try {
     // Check if OpenAI is available
     if (!openai) {
+      console.error('❌ [GPT5_ADVICE] OpenAI client not available - missing API key');
       throw new Error('OPENAI_API_KEY is required in environment variables');
     }
-
-    // Use global settings as the system prompt or default
-    const systemPrompt = globalSettings || 'You are an expert UI/UX design advisor. Provide specific, actionable design feedback based on the structured analysis of the design provided.';
-
-    // User context and inquiries with preprocessed data
-    const userContext = [];
-    userContext.push('I have a structured analysis of this design that was extracted from the image:');
-    userContext.push('```json');
-    userContext.push(preprocessedData);
-    userContext.push('```');
-    userContext.push('');
     
-    if (context) {
-      userContext.push(`Context: ${context}`);
+    console.log('📋 [GPT5_ADVICE] Request parameters:', {
+      imageUrl: imageUrl ? `${imageUrl.substring(0, 50)}...` : 'null',
+      imageUrlFull: imageUrl, // Log full URL to check format
+      contextLength: context?.length || 0,
+      inquiriesLength: inquiries?.length || 0,
+      globalSettingsLength: globalSettings?.length || 0
+    });
+    
+    // Validate image URL format and test accessibility
+    if (imageUrl) {
+      const isValidUrl = imageUrl.startsWith('http://') || imageUrl.startsWith('https://');
+      const isSupabaseUrl = imageUrl.includes('supabase');
+      console.log('🔍 [GPT5_ADVICE] Image URL validation:', {
+        isValidUrl,
+        isSupabaseUrl,
+        urlLength: imageUrl.length
+      });
+      
+      // Test if URL is accessible
+      try {
+        console.log('🌐 [GPT5_ADVICE] Testing image URL accessibility...');
+        const headResponse = await fetch(imageUrl, { method: 'HEAD' });
+        console.log('📡 [GPT5_ADVICE] URL accessibility test:', {
+          status: headResponse.status,
+          statusText: headResponse.statusText,
+          contentType: headResponse.headers.get('content-type'),
+          contentLength: headResponse.headers.get('content-length'),
+          cacheControl: headResponse.headers.get('cache-control'),
+          accessible: headResponse.ok
+        });
+        
+        if (!headResponse.ok) {
+          console.error('⚠️ [GPT5_ADVICE] Image URL is not publicly accessible!', {
+            status: headResponse.status,
+            statusText: headResponse.statusText
+          });
+          
+          // This might be the root cause of the OpenAI API error
+          console.error('🔴 [GPT5_ADVICE] This is likely why OpenAI API fails - the image URL is not accessible to external services!');
+        }
+      } catch (urlError) {
+        console.error('💥 [GPT5_ADVICE] Failed to test URL accessibility:', urlError);
+      }
     }
-    if (inquiries) {
-      userContext.push(`Questions: ${inquiries}`);
-    }
-    
-    userContext.push('');
-    userContext.push('Using the structured analysis above along with the image, please provide specific design advice that addresses:');
-    userContext.push('- How well the current structure serves the design goals');
-    userContext.push('- Opportunities to improve the layout and hierarchy based on the extracted data');
-    userContext.push('- Typography and color usage insights from the analysis');
-    userContext.push('- Content and navigation effectiveness');
-    userContext.push('- Any structural issues that impact usability');
-    userContext.push('');
-    userContext.push('Focus on providing actionable, specific design advice that leverages the detailed structural analysis.');
-    userContext.push('');
-    userContext.push('Please provide your design analysis using proper markdown formatting with:');
-    userContext.push('- Clear headings (## for main sections)'); 
-    userContext.push('- Bullet points for lists');
-    userContext.push('- **Bold** for important points');
-    userContext.push('- Keep bullet points concise and readable');
-    
-    const userPrompt = userContext.join('\n\n');
+
+    // Use the professional senior critique prompt system
+    const systemPrompt = SENIOR_CRITIQUE_PROMPT.system;
+    const userPrompt = SENIOR_CRITIQUE_PROMPT.user(context, inquiries, globalSettings);
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const messages: any[] = [];
     
-    // Add system message
     messages.push({
       role: 'system',
       content: systemPrompt,
@@ -682,16 +380,203 @@ export async function generatePreprocessedAdvice({
       content: userContent,
     });
 
+    console.log('🚀 [GPT5_ADVICE] Calling OpenAI API with model: gpt-4o (debugging)');
+    console.log('📋 [GPT5_ADVICE] Request payload:', {
+      model: 'gpt-4o',
+      messagesCount: messages.length,
+      messageStructure: messages.map(msg => ({
+        role: msg.role,
+        contentType: Array.isArray(msg.content) ? 'array' : 'string',
+        contentLength: Array.isArray(msg.content) ? msg.content.length : msg.content?.length
+      })),
+      max_completion_tokens: 2000,
+      temperature: 'default (1) - GPT-5 requirement'
+    });
+    
+    const apiCallStart = Date.now();
+
     const response = await openai.chat.completions.create({
-      model: process.env.OPENAI_MODEL || 'gpt-4o',
+      model: 'gpt-4o', // Temporarily using working model to debug the issue
       messages,
-      max_tokens: 1500,
+      max_tokens: 2000, // Back to standard parameter for gpt-4o
+      temperature: 0.7, // gpt-4o supports temperature
+    });
+    
+    const apiCallTime = Date.now() - apiCallStart;
+    const totalTime = Date.now() - startTime;
+    
+    const result = response.choices[0]?.message?.content || 'Unable to generate product design advice. Please try again.';
+    
+    console.log('✅ [GPT5_ADVICE] API call completed successfully:', {
+      apiCallTime: `${apiCallTime}ms`,
+      totalTime: `${totalTime}ms`,
+      responseLength: result.length,
+      tokensUsed: response.usage ? `${response.usage.total_tokens} total (${response.usage.prompt_tokens} prompt + ${response.usage.completion_tokens} completion)` : 'unknown'
+    });
+
+    return result;
+  } catch (error) {
+    const totalTime = Date.now() - startTime;
+    console.error(`💥 [GPT5_ADVICE] API call failed after ${totalTime}ms:`, error);
+    
+    // Detailed error logging for debugging
+    if (error && typeof error === 'object') {
+      console.error('🔍 [GPT5_ADVICE] Detailed error analysis:', {
+        message: error.message || 'No message',
+        status: error.status || 'No status',
+        code: error.code || 'No code',
+        type: error.type || 'No type',
+        error: error.error || 'No error field',
+        stack: error.stack || 'No stack'
+      });
+      
+      // Check if it's a specific model error
+      if (error.message && error.message.includes('model')) {
+        console.error('🤔 [GPT5_ADVICE] Model error detected. Current model: gpt-5');
+        console.error('💡 [GPT5_ADVICE] Try checking if gpt-5 model is available in your OpenAI account');
+      }
+      
+      // Check if it's an image format error  
+      if (error.message && (error.message.includes('image') || error.message.includes('format'))) {
+        console.error('🖼️ [GPT5_ADVICE] Image format error detected');
+      }
+
+      // Check for parameter errors
+      if (error.message && (error.message.includes('parameter') || error.message.includes('max_completion_tokens') || error.message.includes('temperature'))) {
+        console.error('⚙️ [GPT5_ADVICE] Parameter error detected - GPT-5 API requirements may have changed');
+      }
+    }
+    
+    // Don't throw a generic error - throw the specific error for better debugging
+    throw error;
+  }
+}
+
+export async function generateGPT5AdviceVersion({
+  newImageUrl,
+  previousImageUrl,
+  previousAdvice,
+  previousGPT5Advice,
+  context,
+  inquiries,
+  versionNotes,
+  globalSettings,
+}: DesignVersionComparisonRequest & { previousGPT5Advice?: string }): Promise<string> {
+  try {
+    // Check if OpenAI is available
+    if (!openai) {
+      throw new Error('OPENAI_API_KEY is required in environment variables');
+    }
+
+    // GPT-5 specific system prompt for version comparison
+    const systemPrompt = `You are an experienced product designer analyzing design iterations. Your role is to provide comprehensive feedback on design evolution, focusing on how changes impact user experience, business goals, and product strategy.
+
+Key principles for version analysis:
+- Compare the new version against the previous version systematically
+- Evaluate improvements and potential regressions
+- Consider user experience implications of changes
+- Assess alignment with product and business objectives
+- Provide specific, actionable recommendations for further improvements
+- Focus on iterative design process and design system consistency
+
+${globalSettings ? `Additional guidance: ${globalSettings}` : ''}
+
+Provide your version comparison analysis in clear markdown format with specific recommendations.`;
+
+    // Build context-aware user prompt for version comparison
+    const userContext = [];
+    userContext.push('Please analyze this design iteration from a product design perspective, comparing the new version with the previous version.');
+    userContext.push('');
+    userContext.push('Focus on:');
+    userContext.push('- What specific changes were made and their impact');
+    userContext.push('- User experience improvements or regressions');
+    userContext.push('- Alignment with product strategy and business goals');
+    userContext.push('- Design system consistency and scalability');
+    userContext.push('- Recommendations for further iterations');
+    userContext.push('');
+    
+    if (context) {
+      userContext.push(`Context: ${context}`);
+      userContext.push('');
+    }
+    if (inquiries) {
+      userContext.push(`Specific questions: ${inquiries}`);
+      userContext.push('');
+    }
+    if (versionNotes) {
+      userContext.push(`Version notes: ${versionNotes}`);
+      userContext.push('');
+    }
+    if (previousGPT5Advice) {
+      userContext.push('Previous GPT-5 product design advice:');
+      userContext.push('```');
+      userContext.push(previousGPT5Advice);
+      userContext.push('```');
+      userContext.push('');
+    }
+    
+    userContext.push('Please provide comprehensive product design feedback on this version iteration.');
+    
+    const userPrompt = userContext.join('\n');
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const messages: any[] = [];
+    
+    messages.push({
+      role: 'system',
+      content: systemPrompt,
+    });
+    
+    // Build user message with both images
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const userContent: any[] = [];
+    
+    userContent.push({
+      type: 'text',
+      text: userPrompt,
+    });
+    
+    userContent.push({
+      type: 'text',
+      text: 'Previous Design:',
+    });
+    
+    userContent.push({
+      type: 'image_url',
+      image_url: {
+        url: previousImageUrl,
+        detail: 'high',
+      },
+    });
+    
+    userContent.push({
+      type: 'text',
+      text: 'New Design Version:',
+    });
+    
+    userContent.push({
+      type: 'image_url',
+      image_url: {
+        url: newImageUrl,
+        detail: 'high',
+      },
+    });
+    
+    messages.push({
+      role: 'user',
+      content: userContent,
+    });
+
+    const response = await openai.chat.completions.create({
+      model: 'gpt-5', // Use GPT-5 specifically
+      messages,
+      max_tokens: 2000, // More tokens for comprehensive version analysis
       temperature: 0.7,
     });
 
-    return response.choices[0]?.message?.content || 'Unable to generate preprocessed design advice. Please try again.';
+    return response.choices[0]?.message?.content || 'Unable to generate GPT-5 product design advice for this version. Please try again.';
   } catch (error) {
-    console.error('OpenAI API error in preprocessed advice:', error);
+    console.error('OpenAI API error in GPT-5 version analysis:', error);
     
     if (error instanceof Error) {
       // Same error handling as other functions
@@ -704,7 +589,7 @@ export async function generatePreprocessedAdvice({
       }
       
       if (error.message.includes('400') || error.message.includes('Bad Request')) {
-        throw new Error('Invalid request to OpenAI API. The image may be too large or in an unsupported format.');
+        throw new Error('Invalid request to OpenAI API. The images may be too large or in an unsupported format.');
       }
       
       if (error.message.includes('500') || error.message.includes('502') || error.message.includes('503')) {
@@ -721,7 +606,7 @@ export async function generatePreprocessedAdvice({
       }
     }
     
-    throw new Error('Failed to generate preprocessed design advice. Please try again or check your API configuration.');
+    throw new Error('Failed to generate GPT-5 product design advice for version. Please try again or check your API configuration.');
   }
 }
 

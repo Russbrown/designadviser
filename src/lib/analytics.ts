@@ -123,26 +123,6 @@ export class AnalyticsService {
     });
   }
 
-  static trackAdviceVote(userId: string | null, metadata?: {
-    preferredAdviceType?: number;
-    hasFeedback?: boolean;
-    entryId?: string;
-    versionId?: string;
-    isUpdate?: boolean;
-  }) {
-    if (typeof window === 'undefined') return;
-    
-    this.init();
-    posthog.capture('advice_voted', {
-      user_id: userId,
-      timestamp: new Date().toISOString(),
-      preferred_advice_type: metadata?.preferredAdviceType,
-      has_feedback: metadata?.hasFeedback,
-      entry_id: metadata?.entryId,
-      version_id: metadata?.versionId,
-      is_update: metadata?.isUpdate,
-    });
-  }
 
   static trackPageView(path?: string) {
     if (typeof window === 'undefined') return;

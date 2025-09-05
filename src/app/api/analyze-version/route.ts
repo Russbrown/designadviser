@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { analyzeDesignVersion, generateSeniorCritiqueVersion } from '@/lib/openai';
+import { analyzeDesignVersion, generateSeniorCritiqueVersion, generateGPT5AdviceVersion } from '@/lib/openai';
 import { FEATURES } from '@/lib/environment';
 
 export async function POST(request: NextRequest) {
@@ -9,7 +9,8 @@ export async function POST(request: NextRequest) {
       newImageUrl, 
       previousImageUrl, 
       previousAdvice,
-      previousSeniorCritique, 
+      previousSeniorCritique,
+      previousGPT5Advice,
       context, 
       inquiries, 
       versionNotes,
@@ -25,8 +26,8 @@ export async function POST(request: NextRequest) {
     }
 
     if (FEATURES.GENERATE_MULTIPLE_ADVICE) {
-      // Development: Generate both types of analysis for the version
-      const [advice, seniorCritique] = await Promise.all([
+      // Development: Generate all three types of analysis for the version
+      const [advice, seniorCritique, gpt5Advice] = await Promise.all([
         analyzeDesignVersion({
           newImageUrl,
           previousImageUrl,
@@ -45,10 +46,20 @@ export async function POST(request: NextRequest) {
           inquiries: inquiries || '',
           versionNotes: versionNotes || '',
           globalSettings: globalSettings || '',
+        }),
+        generateGPT5AdviceVersion({
+          newImageUrl,
+          previousImageUrl,
+          previousAdvice: previousAdvice || '',
+          previousGPT5Advice: previousGPT5Advice || '',
+          context: context || '',
+          inquiries: inquiries || '',
+          versionNotes: versionNotes || '',
+          globalSettings: globalSettings || '',
         })
       ]);
 
-      return NextResponse.json({ advice, seniorCritique, miniAdvice: null });
+      return NextResponse.json({ advice, seniorCritique, gpt5Advice, miniAdvice: null });
     } else {
       // Production: Only generate general version analysis
       const advice = await analyzeDesignVersion({
@@ -63,7 +74,8 @@ export async function POST(request: NextRequest) {
 
       return NextResponse.json({ 
         advice, 
-        seniorCritique: null, 
+        seniorCritique: null,
+        gpt5Advice: null,
         miniAdvice: null 
       });
     }

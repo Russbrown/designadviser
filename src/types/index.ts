@@ -6,10 +6,7 @@ export interface DesignEntry {
   image_path: string | null;
   context: string | null;
   inquiries: string | null;
-  advice: string;
-  senior_critique?: string;
-  mini_advice?: string;
-  preprocessed_advice?: string;
+  advice: string; // Contains GPT-5 advice from senior critique prompt
   user_id?: string | null;
   design_versions?: DesignVersion[];
 }
@@ -20,10 +17,7 @@ export interface DesignVersion {
   version_number: number;
   image_url: string | null;
   image_path: string | null;
-  advice: string;
-  senior_critique?: string;
-  mini_advice?: string;
-  preprocessed_advice?: string;
+  advice: string; // Contains GPT-5 advice from senior critique prompt
   entry_id: string;
   notes: string | null;
 }

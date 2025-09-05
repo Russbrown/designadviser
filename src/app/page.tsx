@@ -19,7 +19,16 @@ import { AnalyticsService } from '@/lib/analytics';
 import { FEATURES } from '@/lib/environment';
 
 // Real OpenAI-powered design analysis
-const generateAdvice = async (imageUrl: string, context: string, inquiries: string, globalSettings: string): Promise<{ advice: string; seniorCritique: string | null; miniAdvice: string | null }> => {
+const generateAdvice = async (imageUrl: string, context: string, inquiries: string, globalSettings: string): Promise<{ advice: string; seniorCritique: string | null; gpt5Advice: string | null; miniAdvice: string | null }> => {
+  const startTime = Date.now();
+  console.log('🔍 [GENERATE_ADVICE] Starting analysis request:', {
+    imageUrl: imageUrl ? `${imageUrl.substring(0, 50)}...` : 'null',
+    imageUrlFull: imageUrl, // Show full URL for debugging
+    contextLength: context?.length || 0,
+    inquiriesLength: inquiries?.length || 0,
+    globalSettingsLength: globalSettings?.length || 0
+  });
+
   try {
     const response = await fetch('/api/analyze', {
       method: 'POST',
@@ -34,19 +43,40 @@ const generateAdvice = async (imageUrl: string, context: string, inquiries: stri
       }),
     });
 
+    const responseTime = Date.now() - startTime;
+
     if (!response.ok) {
       const errorData = await response.json();
+      console.error(`💥 [GENERATE_ADVICE] API call failed after ${responseTime}ms:`, {
+        status: response.status,
+        statusText: response.statusText,
+        error: errorData.error || 'No error message',
+        debug: errorData.debug || 'No debug info'
+      });
+      
+      if (errorData.debug) {
+        console.error('🔍 [DEBUG] Server debug info:', errorData.debug);
+      }
+      
       throw new Error(errorData.error || 'Failed to analyze design');
     }
 
     const data = await response.json();
+    
+    console.log(`✅ [GENERATE_ADVICE] GPT-5 API call successful in ${responseTime}ms:`, {
+      hasAdvice: !!data.advice,
+      adviceLength: data.advice?.length || 0
+    });
+    
     return { 
       advice: data.advice, 
-      seniorCritique: data.seniorCritique || null, 
+      seniorCritique: data.seniorCritique || null,
+      gpt5Advice: data.gpt5Advice || null,
       miniAdvice: data.miniAdvice || null 
     };
   } catch (error) {
-    console.error('Error generating advice:', error);
+    const errorTime = Date.now() - startTime;
+    console.error(`💥 [GENERATE_ADVICE] Request failed after ${errorTime}ms:`, error);
     
     // Re-throw the error to be handled by the component
     throw error;
@@ -131,26 +161,53 @@ export default function Home() {
       return;
     }
 
+    console.log('🚀 [CLIENT] Starting design analysis process:', {
+      fileName: currentImage.name,
+      fileSize: currentImage.size,
+      fileType: currentImage.type,
+      designProblem: designProblem ? designProblem.substring(0, 50) + '...' : 'None',
+      userId: user.id
+    });
+
     setIsAnalyzing(true);
     setError(null); // Clear any previous errors
     
     try {
       // First upload the image to Supabase storage
+      console.log('📤 [CLIENT] Starting file upload to Supabase...');
       const formData = new FormData();
       formData.append('file', currentImage);
+      
+      const uploadStartTime = Date.now();
       
       const uploadResponse = await fetch('/api/upload', {
         method: 'POST',
         body: formData,
       });
       
+      const uploadTime = Date.now() - uploadStartTime;
+      
       if (!uploadResponse.ok) {
-        const errorText = await uploadResponse.text();
-        console.error('Upload failed:', uploadResponse.status, errorText);
-        throw new Error(`Failed to upload image: ${uploadResponse.status} ${errorText}`);
+        const errorData = await uploadResponse.json().catch(() => ({ error: 'Unknown error' }));
+        console.error(`💥 [CLIENT] Upload failed after ${uploadTime}ms:`, {
+          status: uploadResponse.status,
+          statusText: uploadResponse.statusText,
+          error: errorData.error || 'No error message',
+          debug: errorData.debug || 'No debug info'
+        });
+        
+        if (errorData.debug) {
+          console.error('🔍 [DEBUG] Upload server debug info:', errorData.debug);
+        }
+        
+        throw new Error(`Failed to upload image: ${uploadResponse.status} ${errorData.error || uploadResponse.statusText}`);
       }
       
       const { url: imageUrl, path: imagePath } = await uploadResponse.json();
+      console.log(`✅ [CLIENT] Upload successful in ${uploadTime}ms:`, {
+        imageUrl: imageUrl.substring(0, 50) + '...',
+        imagePath
+      });
       
       // Track image upload event
       AnalyticsService.trackImageUpload(user?.id || null, {
@@ -181,8 +238,16 @@ export default function Home() {
       // Use design problem as both context and inquiries 
       const inquiries = designProblem || '';
       
+      console.log('🧠 [CLIENT] Starting AI analysis...');
+      const analysisStartTime = Date.now();
+      
       // Generate advice using OpenAI API - this will throw if it fails
-      const { advice, seniorCritique, miniAdvice } = await generateAdvice(imageUrl, '', inquiries, globalSettings);
+      const { advice, seniorCritique, gpt5Advice, miniAdvice } = await generateAdvice(imageUrl, '', inquiries, globalSettings);
+      
+      const analysisTime = Date.now() - analysisStartTime;
+      console.log(`✅ [CLIENT] GPT-5 analysis completed in ${analysisTime}ms:`, {
+        adviceLength: advice.length
+      });
       
       // Track design analysis completion
       AnalyticsService.trackDesignAnalysis(user?.id || null, {
@@ -192,6 +257,9 @@ export default function Home() {
       });
 
       // Save entry to database
+      console.log('💾 [CLIENT] Saving entry to database...');
+      const dbSaveStartTime = Date.now();
+      
       const entryUrl = `/api/entries?user_id=${user.id}`;
       const entryResponse = await fetch(entryUrl, {
         method: 'POST',
@@ -204,21 +272,24 @@ export default function Home() {
           image_path: imagePath,
           context: null, // No separate context field anymore
           inquiries: designProblem || null,
-          advice,
-          senior_critique: FEATURES.GENERATE_MULTIPLE_ADVICE ? seniorCritique : null,
-          mini_advice: FEATURES.GENERATE_MULTIPLE_ADVICE ? miniAdvice : null,
+          advice, // Now contains GPT-5 advice from optimized single call
+          // Removed senior_critique since we're only using GPT-5 for performance
         }),
       });
       
+      const dbSaveTime = Date.now() - dbSaveStartTime;
+      
       if (!entryResponse.ok) {
         const errorData = await entryResponse.text();
-        console.error('Entry save failed:', {
+        console.error(`💥 [CLIENT] Database save failed after ${dbSaveTime}ms:`, {
           status: entryResponse.status,
           statusText: entryResponse.statusText,
           error: errorData
         });
         throw new Error(`Failed to save entry: ${entryResponse.status} ${entryResponse.statusText} - ${errorData}`);
       }
+      
+      console.log(`✅ [CLIENT] Database save successful in ${dbSaveTime}ms`);
       
       const newEntry = await entryResponse.json();
       newEntry.design_versions = [];
@@ -227,10 +298,14 @@ export default function Home() {
       setCurrentImage(null);
       setError(null); // Clear error on success
       
+      const totalProcessTime = Date.now() - uploadStartTime;
+      console.log(`🎉 [CLIENT] Complete process finished successfully in ${totalProcessTime}ms`);
+      
       // Navigate to the newly created entry
       setSelectedEntry(newEntry);
     } catch (error) {
-      console.error('Error generating AI advice:', error);
+      const totalProcessTime = uploadStartTime ? Date.now() - uploadStartTime : 0;
+      console.error(`💥 [CLIENT] Complete process failed after ${totalProcessTime}ms:`, error);
       
       // Set error message to display to user
       const errorMessage = error instanceof Error 

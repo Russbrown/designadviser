@@ -33,7 +33,7 @@ export async function POST(
   try {
     const { id } = await params;
     const body = await request.json();
-    const { image_url, image_path, advice, senior_critique, mini_advice, notes } = body;
+    const { image_url, image_path, advice, senior_critique, gpt5_advice, mini_advice, notes } = body;
 
     // Get the current highest version number for this entry
     const { data: existingVersions, error: versionError } = await supabaseAdmin
@@ -62,6 +62,9 @@ export async function POST(
     // Add optional fields only if they exist and features are enabled
     if (senior_critique && FEATURES.GENERATE_MULTIPLE_ADVICE) {
       versionData.senior_critique = senior_critique;
+    }
+    if (gpt5_advice && FEATURES.GENERATE_MULTIPLE_ADVICE) {
+      versionData.gpt5_advice = gpt5_advice;
     }
     if (mini_advice && FEATURES.GENERATE_MULTIPLE_ADVICE) {
       versionData.mini_advice = mini_advice;
