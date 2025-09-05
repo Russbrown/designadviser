@@ -25,36 +25,36 @@ export function MarkdownRenderer({ content, className }: MarkdownRendererProps) 
             </h1>
           ),
           h2: ({ children }) => (
-            <h2 className="text-lg font-semibold text-foreground mb-4 mt-6 first:mt-0">
+            <h2 className="text-[12px] font-bold text-black mb-1 mt-6 first:mt-0" style={{ fontFamily: 'var(--font-instrument-sans), ui-sans-serif, system-ui' }}>
               {children}
             </h2>
           ),
           h3: ({ children }) => (
-            <h3 className="text-base font-medium text-foreground mb-3 mt-5 first:mt-0">
+            <h3 className="text-[12px] font-bold text-black mb-1 mt-5 first:mt-0" style={{ fontFamily: 'var(--font-instrument-sans), ui-sans-serif, system-ui' }}>
               {children}
             </h3>
           ),
           
           // Custom paragraph styles
           p: ({ children }) => (
-            <p className="text-sm text-muted-foreground mb-4 leading-relaxed">
+            <p className="text-[12px] text-black mb-2 leading-relaxed">
               {children}
             </p>
           ),
           
           // Custom list styles
           ul: ({ children }) => (
-            <ul className="list-disc list-outside ml-6 space-y-2 mb-4 text-sm text-muted-foreground [&_ul]:mt-2 [&_ul]:mb-2">
+            <ul className="list-disc list-outside ml-6 space-y-0 mb-4 text-[12px] text-black [&_ul]:mt-2 [&_ul]:mb-2">
               {children}
             </ul>
           ),
           ol: ({ children }) => (
-            <ol className="list-decimal list-outside ml-6 space-y-2 mb-4 text-sm text-muted-foreground [&_ol]:mt-2 [&_ol]:mb-2">
+            <ol className="list-decimal list-outside ml-6 space-y-0 mb-4 text-[12px] text-black [&_ol]:mt-2 [&_ol]:mb-2">
               {children}
             </ol>
           ),
           li: ({ children }) => (
-            <li className="pl-2 leading-relaxed text-wrap">{children}</li>
+            <li className="pl-2 leading-relaxed text-wrap text-[12px] text-black">{children}</li>
           ),
           
           // Custom code styles

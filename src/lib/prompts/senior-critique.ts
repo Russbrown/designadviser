@@ -20,12 +20,6 @@ If product/domain is unclear, infer a plausible goal and state your assumption i
 
 Return this structure exactly:
 
-## Quick Verdict
-- <one line on overall state and the one thing to fix first>
-
-## Copy check
-- <2–4 bullets> - Grammar and typo check
-
 ## What to Fix (highest impact first)
 1) <Issue name> — <why it hurts>  
    **Do this:** <specific UI change with values>  
@@ -34,6 +28,9 @@ Return this structure exactly:
    **Measure:** <metric and how to track>
 
 2) ...
+
+## Copy check
+- <2–4 bullets> - Grammar and typo check
 
 ## If I Had 1 Hour
 - <3–5 concrete design tasks in order, avoid tasks outside design like usability testing or user research, or meeting engineers>

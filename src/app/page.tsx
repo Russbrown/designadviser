@@ -2,87 +2,22 @@
 
 import { useState, useCallback, useEffect } from 'react';
 import { DesignEntry, TextUpdate, TimelineItem, isDesignEntry, isTextUpdate } from '@/types';
-import { ImageUpload } from '@/components/ui/image-upload';
-import { AdviceForm } from '@/components/ui/advice-form';
 import { Timeline } from '@/components/ui/timeline';
 import { DesignViewer } from '@/components/ui/design-viewer';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { VersionCreationDialog } from '@/components/ui/version-creation-dialog';
 import { TextUpdateDialog } from '@/components/ui/text-update-dialog';
+import { DesignEntryDialog } from '@/components/ui/design-entry-dialog';
 import { UserMenu } from '@/components/ui/user-menu';
 import { LoadingOverlay } from '@/components/ui/loading-overlay';
 import { SettingsModal } from '@/components/ui/settings-modal';
 import { useAuth } from '@/contexts/auth-context';
-import { Settings, Plus } from 'lucide-react';
+import { Settings } from 'lucide-react';
 import { ErrorHandler } from '@/components/error-handler';
 import { AnalyticsService } from '@/lib/analytics';
 import { FEATURES } from '@/lib/environment';
 
-// Real OpenAI-powered design analysis
-const generateAdvice = async (imageUrl: string, context: string, inquiries: string, globalSettings: string): Promise<{ advice: string; seniorCritique: string | null; gpt5Advice: string | null; miniAdvice: string | null }> => {
-  const startTime = Date.now();
-  console.log('🔍 [GENERATE_ADVICE] Starting analysis request:', {
-    imageUrl: imageUrl ? `${imageUrl.substring(0, 50)}...` : 'null',
-    imageUrlFull: imageUrl, // Show full URL for debugging
-    contextLength: context?.length || 0,
-    inquiriesLength: inquiries?.length || 0,
-    globalSettingsLength: globalSettings?.length || 0
-  });
-
-  try {
-    const response = await fetch('/api/analyze', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        imageUrl,
-        context,
-        inquiries,
-        globalSettings,
-      }),
-    });
-
-    const responseTime = Date.now() - startTime;
-
-    if (!response.ok) {
-      const errorData = await response.json();
-      console.error(`💥 [GENERATE_ADVICE] API call failed after ${responseTime}ms:`, {
-        status: response.status,
-        statusText: response.statusText,
-        error: errorData.error || 'No error message',
-        debug: errorData.debug || 'No debug info'
-      });
-      
-      if (errorData.debug) {
-        console.error('🔍 [DEBUG] Server debug info:', errorData.debug);
-      }
-      
-      throw new Error(errorData.error || 'Failed to analyze design');
-    }
-
-    const data = await response.json();
-    
-    console.log(`✅ [GENERATE_ADVICE] GPT-5 API call successful in ${responseTime}ms:`, {
-      hasAdvice: !!data.advice,
-      adviceLength: data.advice?.length || 0
-    });
-    
-    return { 
-      advice: data.advice, 
-      seniorCritique: data.seniorCritique || null,
-      gpt5Advice: data.gpt5Advice || null,
-      miniAdvice: data.miniAdvice || null 
-    };
-  } catch (error) {
-    const errorTime = Date.now() - startTime;
-    console.error(`💥 [GENERATE_ADVICE] Request failed after ${errorTime}ms:`, error);
-    
-    // Re-throw the error to be handled by the component
-    throw error;
-  }
-};
 
 export default function Home() {
   const { user, loading: authLoading } = useAuth();
@@ -91,9 +26,7 @@ export default function Home() {
   const [timelineItems, setTimelineItems] = useState<TimelineItem[]>([]);
   const [globalSettings, setGlobalSettings] = useState('');
   const [selectedEntry, setSelectedEntry] = useState<DesignEntry | null>(null);
-  const [currentImage, setCurrentImage] = useState<File | null>(null);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
-  const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isVersionAnalyzing, setIsVersionAnalyzing] = useState(false);
   const [settingsModalOpen, setSettingsModalOpen] = useState(false);
@@ -102,6 +35,7 @@ export default function Home() {
   const [versionDialogOpen, setVersionDialogOpen] = useState(false);
   const [versionTargetEntry, setVersionTargetEntry] = useState<DesignEntry | null>(null);
   const [textUpdateDialogOpen, setTextUpdateDialogOpen] = useState(false);
+  const [designEntryDialogOpen, setDesignEntryDialogOpen] = useState(false);
 
   // Track pageview on mount
   useEffect(() => {
@@ -169,177 +103,6 @@ export default function Home() {
     setTimelineItems(combined);
   }, [entries, textUpdates]);
 
-  const handleImageUpload = useCallback((file: File) => {
-    setCurrentImage(file);
-    setError(null); // Clear any previous errors when new image is uploaded
-  }, []);
-
-  const handleAdviceSubmit = useCallback(async (designProblem: string) => {
-    if (!currentImage) return;
-    
-    // Require authentication for uploads
-    if (!user) {
-      setError('Please sign in to upload designs and get AI advice');
-      return;
-    }
-
-    console.log('🚀 [CLIENT] Starting design analysis process:', {
-      fileName: currentImage.name,
-      fileSize: currentImage.size,
-      fileType: currentImage.type,
-      designProblem: designProblem ? designProblem.substring(0, 50) + '...' : 'None',
-      userId: user.id
-    });
-
-    setIsAnalyzing(true);
-    setError(null); // Clear any previous errors
-    
-    const uploadStartTime = Date.now();
-    
-    try {
-      // First upload the image to Supabase storage
-      console.log('📤 [CLIENT] Starting file upload to Supabase...');
-      const formData = new FormData();
-      formData.append('file', currentImage);
-      
-      const uploadResponse = await fetch('/api/upload', {
-        method: 'POST',
-        body: formData,
-      });
-      
-      const uploadTime = Date.now() - uploadStartTime;
-      
-      if (!uploadResponse.ok) {
-        const errorData = await uploadResponse.json().catch(() => ({ error: 'Unknown error' }));
-        console.error(`💥 [CLIENT] Upload failed after ${uploadTime}ms:`, {
-          status: uploadResponse.status,
-          statusText: uploadResponse.statusText,
-          error: errorData.error || 'No error message',
-          debug: errorData.debug || 'No debug info'
-        });
-        
-        if (errorData.debug) {
-          console.error('🔍 [DEBUG] Upload server debug info:', errorData.debug);
-        }
-        
-        throw new Error(`Failed to upload image: ${uploadResponse.status} ${errorData.error || uploadResponse.statusText}`);
-      }
-      
-      const { url: imageUrl, path: imagePath } = await uploadResponse.json();
-      console.log(`✅ [CLIENT] Upload successful in ${uploadTime}ms:`, {
-        imageUrl: imageUrl.substring(0, 50) + '...',
-        imagePath
-      });
-      
-      // Track image upload event
-      AnalyticsService.trackImageUpload(user?.id || null, {
-        fileName: currentImage.name,
-        fileSize: currentImage.size,
-        fileType: currentImage.type
-      });
-      
-      // Generate a design name using AI
-      const nameResponse = await fetch('/api/generate-name', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          imageUrl,
-          context: '', // No separate context field anymore
-          designProblem,
-        }),
-      });
-      
-      let generatedName = 'Design Entry'; // Fallback name
-      if (nameResponse.ok) {
-        const nameData = await nameResponse.json();
-        generatedName = nameData.name || 'Design Entry';
-      }
-      
-      // Use design problem as both context and inquiries 
-      const inquiries = designProblem || '';
-      
-      console.log('🧠 [CLIENT] Starting AI analysis...');
-      const analysisStartTime = Date.now();
-      
-      // Generate advice using OpenAI API - this will throw if it fails
-      const { advice, seniorCritique, gpt5Advice, miniAdvice } = await generateAdvice(imageUrl, '', inquiries, globalSettings);
-      
-      const analysisTime = Date.now() - analysisStartTime;
-      console.log(`✅ [CLIENT] GPT-5 analysis completed in ${analysisTime}ms:`, {
-        adviceLength: advice.length
-      });
-      
-      // Track design analysis completion
-      AnalyticsService.trackDesignAnalysis(user?.id || null, {
-        hasContext: false,
-        hasInquiries: !!inquiries,
-        analysisLength: advice.length
-      });
-
-      // Save entry to database
-      console.log('💾 [CLIENT] Saving entry to database...');
-      const dbSaveStartTime = Date.now();
-      
-      const entryUrl = `/api/entries?user_id=${user.id}`;
-      const entryResponse = await fetch(entryUrl, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          name: generatedName,
-          image_url: imageUrl,
-          image_path: imagePath,
-          context: null, // No separate context field anymore
-          inquiries: designProblem || null,
-          advice, // Now contains GPT-5 advice from optimized single call
-          // Removed senior_critique since we're only using GPT-5 for performance
-        }),
-      });
-      
-      const dbSaveTime = Date.now() - dbSaveStartTime;
-      
-      if (!entryResponse.ok) {
-        const errorData = await entryResponse.text();
-        console.error(`💥 [CLIENT] Database save failed after ${dbSaveTime}ms:`, {
-          status: entryResponse.status,
-          statusText: entryResponse.statusText,
-          error: errorData
-        });
-        throw new Error(`Failed to save entry: ${entryResponse.status} ${entryResponse.statusText} - ${errorData}`);
-      }
-      
-      console.log(`✅ [CLIENT] Database save successful in ${dbSaveTime}ms`);
-      
-      const newEntry = await entryResponse.json();
-      newEntry.design_versions = [];
-      
-      setEntries(prev => [newEntry, ...prev]);
-      setCurrentImage(null);
-      setError(null); // Clear error on success
-      
-      const totalProcessTime = Date.now() - uploadStartTime;
-      console.log(`🎉 [CLIENT] Complete process finished successfully in ${totalProcessTime}ms`);
-      
-      // Navigate to the newly created entry
-      setSelectedEntry(newEntry);
-    } catch (error) {
-      const totalProcessTime = Date.now() - uploadStartTime;
-      console.error(`💥 [CLIENT] Complete process failed after ${totalProcessTime}ms:`, error);
-      
-      // Set error message to display to user
-      const errorMessage = error instanceof Error 
-        ? error.message 
-        : 'Failed to generate AI-powered design advice';
-      
-      setError(errorMessage);
-      // Don't clear the image or create an entry - let user retry
-    } finally {
-      setIsAnalyzing(false);
-    }
-  }, [currentImage, globalSettings, user]);
 
   const handleEntrySelect = useCallback((entry: DesignEntry) => {
     console.log('Selecting entry:', {
@@ -410,6 +173,12 @@ export default function Home() {
     setTextUpdates(prev => [newTextUpdate, ...prev]);
   }, []);
 
+  const handleDesignEntryCreated = useCallback((newEntry: DesignEntry) => {
+    setEntries(prev => [newEntry, ...prev]);
+    // Navigate to the newly created entry
+    setSelectedEntry(newEntry);
+  }, []);
+
   const handleTimelineItemSelect = useCallback((item: TimelineItem) => {
     if (isDesignEntry(item)) {
       handleEntrySelect(item);
@@ -432,11 +201,9 @@ export default function Home() {
       } else {
         const errorData = await response.json().catch(() => ({}));
         console.error('Failed to delete entry:', errorData.error || 'Unknown error');
-        setError(`Failed to delete entry: ${errorData.error || 'Unknown error'}`);
       }
     } catch (error) {
       console.error('Error deleting entry:', error);
-      setError('Network error while deleting entry');
     }
   }, []);
 
@@ -464,7 +231,7 @@ export default function Home() {
 
   if (selectedEntry) {
     return (
-      <div className="container mx-auto py-8 px-4">
+      <div className="container mx-auto max-w-[850px] py-8 px-4">
         <DesignViewer
           entry={selectedEntry}
           onBack={handleBackToTimeline}
@@ -499,100 +266,114 @@ export default function Home() {
   }
 
   return (
-    <div className="container mx-auto py-8 px-4 space-y-8">
+    <div className="container mx-auto max-w-[850px] py-8 px-4 space-y-8">
       <ErrorHandler />
-      <div className="flex items-start justify-between">
-        <div className="space-y-2 flex-1">
-          <h1 className="text-3xl font-bold">Design Journal</h1>
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-[20px] font-semibold text-black">Design Journal</h1>
         </div>
-        <div className="flex items-center gap-3">
-          <Button 
-            variant="outline" 
-            size="sm"
-            onClick={() => setTextUpdateDialogOpen(true)}
-            className="text-xs"
-            disabled={!user}
-          >
-            <Plus className="h-4 w-4 mr-2" />
-            Add Text Update
-          </Button>
-          <Button 
-            variant="outline" 
-            size="sm"
+        <div className="flex items-center gap-2">
+          <button
             onClick={() => setSettingsModalOpen(true)}
-            className="text-xs"
+            className="overflow-clip relative rounded-[5px] shrink-0 size-5"
           >
-            <Settings className="h-4 w-4 mr-2" />
-            Configure Advice
-          </Button>
+            <svg 
+              width="20" 
+              height="20" 
+              viewBox="0 0 20 20" 
+              fill="none" 
+              xmlns="http://www.w3.org/2000/svg"
+              className="size-full"
+            >
+              <circle cx="10" cy="10" r="2.5" stroke="#1C274C" strokeWidth="1.5"/>
+              <path d="M3.05094 8.8663C3.44472 9.11372 3.6981 9.53521 3.6981 10.0003C3.6981 10.4653 3.44472 10.8868 3.05094 11.1342C2.78297 11.3026 2.61032 11.4372 2.48748 11.5973C2.21839 11.948 2.09964 12.3912 2.15733 12.8294C2.2006 13.1581 2.39475 13.4944 2.78303 14.1669C3.17132 14.8394 3.36546 15.1757 3.62847 15.3775C3.97916 15.6466 4.42237 15.7654 4.86062 15.7077C5.06065 15.6813 5.26349 15.5991 5.54322 15.4513C5.95445 15.2339 6.44624 15.2252 6.84905 15.4578C7.25181 15.6904 7.49014 16.1206 7.50752 16.5854C7.51935 16.9016 7.54957 17.1184 7.62679 17.3048C7.79594 17.7132 8.1204 18.0376 8.52878 18.2068C8.83506 18.3337 9.22335 18.3337 9.99992 18.3337C10.7765 18.3337 11.1648 18.3337 11.4711 18.2068C11.8794 18.0376 12.2039 17.7132 12.3731 17.3048C12.4503 17.1184 12.4805 16.9016 12.4923 16.5854C12.5097 16.1206 12.748 15.6904 13.1508 15.4579C13.5536 15.2253 14.0453 15.234 14.4565 15.4513C14.7363 15.5992 14.9392 15.6814 15.1392 15.7078C15.5775 15.7655 16.0207 15.6467 16.3714 15.3776C16.6344 15.1758 16.8285 14.8395 17.2168 14.167C17.3897 13.8676 17.524 13.6348 17.6238 13.4397M16.9489 11.1343C16.5551 10.8869 16.3017 10.4654 16.3017 10.0004C16.3017 9.53529 16.5551 9.11375 16.9489 8.8663C17.2168 8.69796 17.3894 8.5634 17.5123 8.40332C17.7813 8.05264 17.9001 7.60942 17.8424 7.17118C17.7991 6.84249 17.605 6.50623 17.2167 5.8337C16.8284 5.16117 16.6343 4.82491 16.3713 4.62309C16.0206 4.354 15.5774 4.23524 15.1391 4.29294C14.9391 4.31927 14.7362 4.40149 14.4565 4.54935C14.0453 4.76669 13.5535 4.77536 13.1507 4.54279C12.748 4.31024 12.5097 3.88007 12.4923 3.41535C12.4805 3.09909 12.4503 2.88228 12.3731 2.69585C12.2039 2.28747 11.8794 1.96302 11.4711 1.79386C11.1648 1.66699 10.7765 1.66699 9.99992 1.66699C9.22335 1.66699 8.83506 1.66699 8.52878 1.79386C8.1204 1.96302 7.79594 2.28747 7.62678 2.69585C7.54957 2.88227 7.51935 3.09906 7.50752 3.41527C7.49014 3.88004 7.25179 4.31025 6.84901 4.54279C6.44623 4.77534 5.95449 4.76665 5.54329 4.54932C5.26353 4.40146 5.06067 4.31923 4.86063 4.2929C4.42238 4.2352 3.97916 4.35396 3.62848 4.62305C3.36547 4.82487 3.17132 5.16113 2.78304 5.83366C2.61018 6.13306 2.47579 6.36582 2.37607 6.56093" stroke="#1C274C" strokeWidth="1.5" strokeLinecap="round"/>
+            </svg>
+          </button>
           <UserMenu />
         </div>
       </div>
 
-      {!user && (
-        <Card className="border-orange-200 bg-orange-50">
-          <CardContent className="p-4">
-            <p className="text-sm text-orange-700">
-              🔒 <strong>Sign in required</strong> to upload designs and get AI advice. Create an account to save your design entries and access all features.
-            </p>
-          </CardContent>
-        </Card>
-      )}
-
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-        <Card className="w-full">
-          <CardHeader>
-            <CardTitle>Create Design Entry</CardTitle>
-            <CardDescription>
-              Upload your design and get personalized AI-powered feedback
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-6">
-            <div className={!user ? 'opacity-50 pointer-events-none' : ''}>
-              <ImageUpload 
-                onImageUpload={handleImageUpload}
-                currentImage={currentImage ? URL.createObjectURL(currentImage) : undefined}
-                onClear={() => setCurrentImage(null)}
-              />
-              
-              <AdviceForm 
-                onSubmit={handleAdviceSubmit}
-                isLoading={isAnalyzing}
-                hasImage={!!currentImage}
-              />
+      {/* Tab Buttons Container */}
+      <div className="flex w-full gap-4 items-start justify-start">
+        {/* Design Advice Tab */}
+        <div 
+          className="flex-1 box-border flex gap-2 h-[50px] items-center justify-center p-[6px] rounded-[6px] hover:border-primary/50 transition-colors cursor-pointer"
+          onClick={() => setDesignEntryDialogOpen(true)}
+          style={{ 
+            opacity: !user ? 0.5 : 1, 
+            pointerEvents: !user ? 'none' : 'auto',
+            background: 'linear-gradient(180deg, #F6F9FB 0%, #F5F8FD 100%)',
+            border: '1px solid #E9EFF1',
+          }}
+        >
+          <div className="flex gap-2.5 items-center justify-center rounded-[6px] shrink-0 size-5">
+            <div className="relative shrink-0 size-[18px]">
+              <svg 
+                width="20" 
+                height="20" 
+                viewBox="0 0 20 20" 
+                fill="none" 
+                xmlns="http://www.w3.org/2000/svg"
+                className="size-full"
+              >
+                <g clipPath="url(#clip0_70_1405)">
+                  <path d="M12.25 10L10 10M10 10L7.75 10M10 10L10 7.75M10 10L10 12.25" stroke="#393F41" strokeWidth="1.5" strokeLinecap="round"/>
+                  <path d="M17.5 10C17.5 13.5355 17.5 15.3033 16.4017 16.4017C15.3033 17.5 13.5355 17.5 10 17.5C6.46447 17.5 4.6967 17.5 3.59835 16.4017C2.5 15.3033 2.5 13.5355 2.5 10C2.5 6.46447 2.5 4.6967 3.59835 3.59835C4.6967 2.5 6.46447 2.5 10 2.5C13.5355 2.5 15.3033 2.5 16.4017 3.59835C17.132 4.32865 17.3767 5.35491 17.4587 7" stroke="#393F41" strokeWidth="1.5" strokeLinecap="round"/>
+                </g>
+                <defs>
+                  <clipPath id="clip0_70_1405">
+                    <rect width="18" height="18" fill="white" transform="translate(1 1)"/>
+                  </clipPath>
+                </defs>
+              </svg>
             </div>
-            
-            {!user && (
-              <div className="text-center py-8">
-                <p className="text-muted-foreground mb-4">
-                  Sign in to upload your designs and get personalized AI feedback
-                </p>
-              </div>
-            )}
-            
-            {error && (
-              <div className="p-4 border border-destructive bg-destructive/10 rounded-lg">
-                <div className="flex items-start gap-3">
-                  <div className="flex-1">
-                    <h4 className="font-medium text-destructive mb-1">AI Analysis Failed</h4>
-                    <p className="text-sm text-muted-foreground mb-3">
-                      Unable to generate AI-powered design advice
-                    </p>
-                    <p className="text-sm text-destructive mb-3">{error}</p>
-                    <Button
-                      variant="outline"
-                      onClick={() => setError(null)}
-                      size="sm"
-                      className="border-destructive text-destructive hover:bg-destructive hover:text-destructive-foreground"
-                    >
-                      Dismiss
-                    </Button>
-                  </div>
-                </div>
-              </div>
-            )}
-          </CardContent>
-        </Card>
+          </div>
+          <div className="font-medium leading-[0] shrink-0 text-[#23282a] text-[12px] whitespace-nowrap">
+            Design Advice
+          </div>
+        </div>
+
+        {/* Project Update Tab */}
+        <div 
+          className="flex-1 box-border flex gap-2 h-[50px] items-center justify-center p-[6px] rounded-[6px] hover:border-primary/50 transition-colors cursor-pointer"
+          onClick={() => setTextUpdateDialogOpen(true)}
+          style={{ 
+            opacity: !user ? 0.5 : 1, 
+            pointerEvents: !user ? 'none' : 'auto',
+            background: 'linear-gradient(180deg, #F6F9FB 0%, #F5F8FD 100%)',
+            border: '1px solid #E9EFF1',
+          }}
+        >
+          <div className="relative shrink-0 size-5">
+            <svg 
+              width="21" 
+              height="20" 
+              viewBox="0 0 21 20" 
+              fill="none" 
+              xmlns="http://www.w3.org/2000/svg"
+              className="size-full"
+            >
+              <path d="M3.8335 18.333H7.16683M17.1668 18.333H10.5002" stroke="#393F41" strokeWidth="1.5" strokeLinecap="round"/>
+              <path d="M12.0735 3.05276L12.6915 2.43484C13.7153 1.41104 15.3752 1.41104 16.399 2.43484C17.4228 3.45865 17.4228 5.11856 16.399 6.14236L15.7811 6.76028M12.0735 3.05276C12.0735 3.05276 12.1508 4.36584 13.3094 5.52444C14.468 6.68304 15.7811 6.76028 15.7811 6.76028M12.0735 3.05276L6.39271 8.73359C6.00794 9.11837 5.81555 9.31075 5.65009 9.52288C5.45492 9.77311 5.28759 10.0439 5.15106 10.3303C5.03532 10.5732 4.94928 10.8313 4.7772 11.3475L4.04803 13.535M15.7811 6.76028L12.9406 9.6007M10.1002 12.4411C9.71546 12.8259 9.52307 13.0183 9.31094 13.1837C9.06071 13.3789 8.78996 13.5462 8.50348 13.6828C8.26063 13.7985 8.00251 13.8845 7.48628 14.0566L5.29878 14.7858M5.29878 14.7858L4.76406 14.964C4.51002 15.0487 4.22993 14.9826 4.04058 14.7932C3.85123 14.6039 3.78511 14.3238 3.8698 14.0698L4.04803 13.535M5.29878 14.7858L4.04803 13.535" stroke="#393F41" strokeWidth="1.5" strokeLinecap="round"/>
+            </svg>
+          </div>
+          <div className="font-medium leading-[0] shrink-0 text-[#23282a] text-[12px] whitespace-nowrap">
+            Project Update
+          </div>
+        </div>
+      </div>
+
+
+      <div className="grid grid-cols-1 gap-8">
+        {!user && (
+          <Card className="border-orange-200 bg-orange-50">
+            <CardContent className="p-4">
+              <p className="text-sm text-orange-700 text-center">
+                🔒 <strong>Sign in required</strong> to create design entries and get AI advice. Create an account to save your design entries and access all features.
+              </p>
+            </CardContent>
+          </Card>
+        )}
 
         {isLoading ? (
           <div className="w-full flex items-center justify-center py-12">
@@ -631,6 +412,15 @@ export default function Home() {
           ? "Our AI is analyzing your updated design and generating fresh insights for this version."
           : "Our AI is reviewing your design and preparing personalized feedback. This usually takes 10-20 seconds."
         }
+      />
+
+      {/* Design Entry Dialog */}
+      <DesignEntryDialog
+        isOpen={designEntryDialogOpen}
+        onClose={() => setDesignEntryDialogOpen(false)}
+        onEntryCreated={handleDesignEntryCreated}
+        globalSettings={globalSettings}
+        onLoadingChange={setIsAnalyzing}
       />
 
       {/* Text Update Dialog */}

@@ -1,0 +1,13 @@
+{
+  "mcpServers": {
+    "figma-dev-mode-mcp-server": {
+      "transport": {
+        "type": "http",
+        "host": "127.0.0.1",
+        "port": 3845,
+        "path": "/mcp"
+      },
+      "description": "Figma Dev Mode MCP Server for generating UI code from Figma designs"
+    }
+  }
+}
