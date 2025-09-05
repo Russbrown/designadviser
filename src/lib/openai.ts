@@ -421,28 +421,30 @@ export async function generateGPT5Advice({
     
     // Detailed error logging for debugging
     if (error && typeof error === 'object') {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const errorObj = error as any;
       console.error('🔍 [GPT5_ADVICE] Detailed error analysis:', {
-        message: error.message || 'No message',
-        status: error.status || 'No status',
-        code: error.code || 'No code',
-        type: error.type || 'No type',
-        error: error.error || 'No error field',
-        stack: error.stack || 'No stack'
+        message: errorObj.message || 'No message',
+        status: errorObj.status || 'No status',
+        code: errorObj.code || 'No code',
+        type: errorObj.type || 'No type',
+        error: errorObj.error || 'No error field',
+        stack: errorObj.stack || 'No stack'
       });
       
       // Check if it's a specific model error
-      if (error.message && error.message.includes('model')) {
+      if (errorObj.message && errorObj.message.includes('model')) {
         console.error('🤔 [GPT5_ADVICE] Model error detected. Current model: gpt-5');
         console.error('💡 [GPT5_ADVICE] Try checking if gpt-5 model is available in your OpenAI account');
       }
       
       // Check if it's an image format error  
-      if (error.message && (error.message.includes('image') || error.message.includes('format'))) {
+      if (errorObj.message && (errorObj.message.includes('image') || errorObj.message.includes('format'))) {
         console.error('🖼️ [GPT5_ADVICE] Image format error detected');
       }
 
       // Check for parameter errors
-      if (error.message && (error.message.includes('parameter') || error.message.includes('max_completion_tokens') || error.message.includes('temperature'))) {
+      if (errorObj.message && (errorObj.message.includes('parameter') || errorObj.message.includes('max_completion_tokens') || errorObj.message.includes('temperature'))) {
         console.error('⚙️ [GPT5_ADVICE] Parameter error detected - GPT-5 API requirements may have changed');
       }
     }
