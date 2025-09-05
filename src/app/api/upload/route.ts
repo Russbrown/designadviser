@@ -159,6 +159,38 @@ export async function POST(request: NextRequest) {
       .from('design-images')
       .getPublicUrl(fileName);
       
+    // Test if the URL is publicly accessible (important for OpenAI access)
+    console.log('🌐 [UPLOAD] Testing public URL accessibility for OpenAI...');
+    const urlTestStart = Date.now();
+    
+    try {
+      const testResponse = await fetch(publicUrlData.publicUrl, { method: 'HEAD' });
+      const urlTestTime = Date.now() - urlTestStart;
+      
+      console.log('📡 [UPLOAD] URL accessibility test results:', {
+        url: publicUrlData.publicUrl,
+        status: testResponse.status,
+        statusText: testResponse.statusText,
+        accessible: testResponse.ok,
+        testTime: `${urlTestTime}ms`,
+        contentType: testResponse.headers.get('content-type'),
+        contentLength: testResponse.headers.get('content-length'),
+        cacheControl: testResponse.headers.get('cache-control')
+      });
+      
+      if (!testResponse.ok) {
+        console.error('🚨 [UPLOAD] WARNING: Uploaded image is not publicly accessible!');
+        console.error('This will cause OpenAI API calls to fail with timeout errors.');
+        console.error('Check your Supabase storage bucket policies and RLS settings.');
+      } else {
+        console.log('✅ [UPLOAD] Image is publicly accessible - OpenAI should be able to download it');
+      }
+    } catch (urlTestError) {
+      const urlTestTime = Date.now() - urlTestStart;
+      console.error('💥 [UPLOAD] Failed to test URL accessibility after', urlTestTime, 'ms:', urlTestError);
+      console.error('This could indicate network issues or the URL is not accessible to external services.');
+    }
+      
     const totalTime = Date.now() - startTime;
     
     console.log('🎉 [UPLOAD] Upload process completed successfully in', totalTime, 'ms:', {
