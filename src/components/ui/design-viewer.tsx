@@ -43,18 +43,6 @@ export function DesignViewer({ entry, onBack, onNewVersion, onDelete, onNameUpda
     ...(currentEntry.design_versions || []).filter(v => v.version_number !== 1)
   ].sort((a, b) => a.version_number - b.version_number);
 
-  // Debug logging to see what versions we have
-  console.log('Entry versions:', {
-    entryId: currentEntry.id,
-    originalEntry: { version_number: 1, isOriginal: true },
-    designVersions: currentEntry.design_versions,
-    allVersions: allVersions.map(v => ({ 
-      version_number: v.version_number, 
-      isOriginal: 'isOriginal' in v ? v.isOriginal : false,
-      id: v.id 
-    }))
-  });
-
   const currentVersion = allVersions[currentVersionIndex];
 
   // Poll for advice updates if current version advice is empty
@@ -70,8 +58,6 @@ export function DesignViewer({ entry, onBack, onNewVersion, onDelete, onNameUpda
       return; // Already have advice for current version
     }
 
-    console.log('🔄 [ADVICE_POLL] Polling for advice updates for entry:', currentEntry.id, 'version:', currentVersion.version_number);
-    
     try {
       const response = await fetch(`/api/entries/${currentEntry.id}`);
       if (!response.ok) {
@@ -99,12 +85,6 @@ export function DesignViewer({ entry, onBack, onNewVersion, onDelete, onNameUpda
         }
         
         if (hasNewAdvice) {
-          console.log('✅ [ADVICE_POLL] Received updated advice for version:', {
-            entryId: updatedEntry.id,
-            versionNumber: currentVersion.version_number,
-            isOriginal: currentVersion.isOriginal
-          });
-          
           setCurrentEntry(updatedEntry);
           setIsLoadingAdvice(false);
         }
@@ -295,7 +275,8 @@ export function DesignViewer({ entry, onBack, onNewVersion, onDelete, onNameUpda
                 className="flex items-center justify-center size-5 rounded-full border transition-colors"
                 style={{
                   borderColor: index === currentVersionIndex ? "#23282A" : "#AEB4B7",
-                  backgroundColor: "transparent"
+                  backgroundColor: "transparent",
+                  borderStyle: index === currentVersionIndex ? "solid" : "dashed"
                 }}
               >
                 <span 
