@@ -50,7 +50,6 @@ export function SettingsModal({
           setDailyReminders(preferences.daily_reminders !== false); // Default to true
         }
       } catch (error) {
-        console.error('Error loading user preferences:', error);
       }
     };
 
@@ -86,20 +85,17 @@ export function SettingsModal({
       
       if (!settingsResponse.ok) {
         const errorData = await settingsResponse.json();
-        console.error('Failed to save settings:', errorData);
         alert(`Failed to save settings: ${errorData.error || 'Unknown error'}`);
         return;
       }
 
       if (!preferencesResponse.ok) {
         const errorData = await preferencesResponse.json();
-        console.error('Failed to save preferences:', errorData);
         alert(`Failed to save email preferences: ${errorData.error || 'Unknown error'}`);
         return;
       }
       
       const settingsResult = await settingsResponse.json();
-      console.log('Settings and preferences saved successfully:', settingsResult);
       
       // Track settings update event
       AnalyticsService.trackSettingsUpdate(userId, {
@@ -110,7 +106,6 @@ export function SettingsModal({
       onSettingsChange(settings);
       onClose();
     } catch (error) {
-      console.error('Error saving settings:', error);
       alert('Failed to save settings. Please try again.');
     } finally {
       setIsSaving(false);

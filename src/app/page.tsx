@@ -62,20 +62,11 @@ export default function Home() {
         if (entriesResponse.ok) {
           const data = await entriesResponse.json();
           
-          console.log('Loaded entries from API:', data.map((entry: DesignEntry) => ({
-            id: entry.id,
-            versionsCount: entry.design_versions?.length || 0,
-            versions: entry.design_versions?.map((v) => ({ 
-              id: v.id, 
-              version_number: v.version_number 
-            })) || []
-          })));
           setEntries(data);
         }
 
         if (textUpdatesResponse.ok) {
           const textUpdatesData = await textUpdatesResponse.json();
-          console.log('Loaded text updates from API:', textUpdatesData.length);
           setTextUpdates(textUpdatesData);
         }
 
@@ -84,11 +75,9 @@ export default function Home() {
         const settingsResponse = await fetch(settingsUrl);
         if (settingsResponse.ok) {
           const settingsData = await settingsResponse.json();
-          console.log('Loaded settings from API:', settingsData);
           setGlobalSettings(settingsData.globalAdvice || '');
         }
       } catch (error) {
-        console.error('Failed to load data:', error);
       } finally {
         setIsLoading(false);
       }
@@ -106,14 +95,6 @@ export default function Home() {
 
 
   const handleEntrySelect = useCallback((entry: DesignEntry) => {
-    console.log('Selecting entry:', {
-      entryId: entry.id,
-      versionsCount: entry.design_versions?.length || 0,
-      versions: entry.design_versions?.map(v => ({ 
-        id: v.id, 
-        version_number: v.version_number 
-      })) || []
-    });
     setSelectedEntry(entry);
   }, []);
 
@@ -211,13 +192,10 @@ export default function Home() {
         setEntries(prev => prev.filter(entry => entry.id !== entryId));
         // Go back to timeline if we're viewing the deleted entry
         setSelectedEntry(prev => prev?.id === entryId ? null : prev);
-        console.log('Entry deleted successfully');
       } else {
         const errorData = await response.json().catch(() => ({}));
-        console.error('Failed to delete entry:', errorData.error || 'Unknown error');
       }
     } catch (error) {
-      console.error('Error deleting entry:', error);
     }
   }, []);
 

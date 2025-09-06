@@ -61,7 +61,6 @@ export function DesignViewer({ entry, onBack, onNewVersion, onDelete, onNameUpda
     try {
       const response = await fetch(`/api/entries/${currentEntry.id}`);
       if (!response.ok) {
-        console.error('💥 [ADVICE_POLL] Failed to fetch entry:', response.status);
         return;
       }
       
@@ -90,7 +89,7 @@ export function DesignViewer({ entry, onBack, onNewVersion, onDelete, onNameUpda
         }
       }
     } catch (error) {
-      console.error('💥 [ADVICE_POLL] Error polling for advice:', error);
+      // Error polling for advice - will retry
     }
   }, [currentEntry.id, currentVersion?.advice, currentVersion?.version_number, currentVersion?.isOriginal]);
 
@@ -104,7 +103,6 @@ export function DesignViewer({ entry, onBack, onNewVersion, onDelete, onNameUpda
     
     if (!currentVersionHasAdvice) {
       setIsLoadingAdvice(true);
-      console.log('🔄 [ADVICE_POLL] Starting polling for advice for version:', currentVersion.version_number);
       
       // Poll immediately
       pollForAdviceUpdate();
@@ -116,7 +114,6 @@ export function DesignViewer({ entry, onBack, onNewVersion, onDelete, onNameUpda
       const timeoutId = setTimeout(() => {
         clearInterval(pollInterval);
         setIsLoadingAdvice(false);
-        console.log('⏰ [ADVICE_POLL] Polling timeout reached for version:', currentVersion.version_number);
       }, 120000);
       
       return () => {
@@ -201,11 +198,10 @@ export function DesignViewer({ entry, onBack, onNewVersion, onDelete, onNameUpda
         setIsEditingName(false);
       } else {
         const errorData = await response.json();
-        console.error('Failed to update entry name:', errorData);
-        alert('Failed to update entry name. Please check the console for details.');
+        alert('Failed to update entry name. Please try again.');
       }
     } catch (error) {
-      console.error('Error updating entry name:', error);
+      alert('Failed to update entry name. Please try again.');
     }
   };
 

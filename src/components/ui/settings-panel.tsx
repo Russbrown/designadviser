@@ -29,7 +29,6 @@ export function SettingsPanel({ onSettingsChange, initialSettings = '' }: Settin
         setLocalSettings(loadedSettings.globalAdvice);
         onSettingsChange(loadedSettings.globalAdvice);
       } catch (error) {
-        console.error('Failed to load settings:', error);
         setLocalSettings(DEFAULT_SETTINGS.globalAdvice);
         onSettingsChange(DEFAULT_SETTINGS.globalAdvice);
       } finally {
@@ -52,7 +51,6 @@ export function SettingsPanel({ onSettingsChange, initialSettings = '' }: Settin
       // Auto-hide success message after 2 seconds
       setTimeout(() => setSaveStatus('idle'), 2000);
     } catch (error) {
-      console.error('Failed to save settings:', error);
       setSaveStatus('error');
       
       // Auto-hide error message after 3 seconds

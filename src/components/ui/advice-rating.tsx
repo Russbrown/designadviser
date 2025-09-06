@@ -57,7 +57,7 @@ export function AdviceRating({ entryId, versionId, onRatingChange }: AdviceRatin
           }
         }
       } catch (error) {
-        console.error('Failed to load existing rating:', error);
+        // Error loading existing rating - will use default state
       } finally {
         setIsLoading(false);
       }
@@ -135,7 +135,6 @@ export function AdviceRating({ entryId, versionId, onRatingChange }: AdviceRatin
       setShowFeedback(false);
       
     } catch (error) {
-      console.error('Failed to submit rating:', error);
       alert('Failed to submit rating. Please try again.');
     } finally {
       setIsSubmitting(false);

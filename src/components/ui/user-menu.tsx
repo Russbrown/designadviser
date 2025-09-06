@@ -33,7 +33,6 @@ export function UserMenu() {
           setDailyReminders(preferences.daily_reminders !== false); // Default to true
         }
       } catch (error) {
-        console.error('Error loading user preferences:', error);
       }
     };
 
@@ -57,10 +56,8 @@ export function UserMenu() {
       if (response.ok) {
         setDailyReminders(enabled);
       } else {
-        console.error('Failed to update reminder preference');
       }
     } catch (error) {
-      console.error('Error updating reminder preference:', error);
     } finally {
       setIsUpdating(false);
     }

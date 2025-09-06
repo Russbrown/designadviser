@@ -28,13 +28,6 @@ interface DesignEntryDialogProps {
 // Design analysis generation using the same logic as the main page
 const generateAdvice = async (imageUrl: string, context: string, inquiries: string, globalSettings: string): Promise<{ advice: string; seniorCritique: string | null; gpt5Advice: string | null; miniAdvice: string | null }> => {
   const startTime = Date.now();
-  console.log('🔍 [GENERATE_ADVICE] Starting analysis request:', {
-    imageUrl: imageUrl ? `${imageUrl.substring(0, 50)}...` : 'null',
-    imageUrlFull: imageUrl,
-    contextLength: context?.length || 0,
-    inquiriesLength: inquiries?.length || 0,
-    globalSettingsLength: globalSettings?.length || 0
-  });
 
   try {
     const response = await fetch('/api/analyze', {
@@ -54,26 +47,10 @@ const generateAdvice = async (imageUrl: string, context: string, inquiries: stri
 
     if (!response.ok) {
       const errorData = await response.json();
-      console.error(`💥 [GENERATE_ADVICE] API call failed after ${responseTime}ms:`, {
-        status: response.status,
-        statusText: response.statusText,
-        error: errorData.error || 'No error message',
-        debug: errorData.debug || 'No debug info'
-      });
-      
-      if (errorData.debug) {
-        console.error('🔍 [DEBUG] Server debug info:', errorData.debug);
-      }
-      
       throw new Error(errorData.error || 'Failed to analyze design');
     }
 
     const data = await response.json();
-    
-    console.log(`✅ [GENERATE_ADVICE] GPT-5 API call successful in ${responseTime}ms:`, {
-      hasAdvice: !!data.advice,
-      adviceLength: data.advice?.length || 0
-    });
     
     return { 
       advice: data.advice, 
@@ -82,8 +59,6 @@ const generateAdvice = async (imageUrl: string, context: string, inquiries: stri
       miniAdvice: data.miniAdvice || null 
     };
   } catch (error) {
-    const errorTime = Date.now() - startTime;
-    console.error(`💥 [GENERATE_ADVICE] Request failed after ${errorTime}ms:`, error);
     throw error;
   }
 };
@@ -116,16 +91,7 @@ export function DesignEntryDialog({
     const uploadStartTime = Date.now();
     
     try {
-      console.log('🚀 [DESIGN_ENTRY_DIALOG] Starting quick upload process:', {
-        fileName: newImage.name,
-        fileSize: newImage.size,
-        fileType: newImage.type,
-        designProblem: designProblem ? designProblem.substring(0, 50) + '...' : 'None',
-        userId: user.id
-      });
-
       // First upload the image to Supabase storage
-      console.log('📤 [DESIGN_ENTRY_DIALOG] Starting file upload to Supabase...');
       const formData = new FormData();
       formData.append('file', newImage);
       
@@ -138,25 +104,10 @@ export function DesignEntryDialog({
       
       if (!uploadResponse.ok) {
         const errorData = await uploadResponse.json().catch(() => ({ error: 'Unknown error' }));
-        console.error(`💥 [DESIGN_ENTRY_DIALOG] Upload failed after ${uploadTime}ms:`, {
-          status: uploadResponse.status,
-          statusText: uploadResponse.statusText,
-          error: errorData.error || 'No error message',
-          debug: errorData.debug || 'No debug info'
-        });
-        
-        if (errorData.debug) {
-          console.error('🔍 [DEBUG] Upload server debug info:', errorData.debug);
-        }
-        
         throw new Error(`Failed to upload image: ${uploadResponse.status} ${errorData.error || uploadResponse.statusText}`);
       }
       
       const { url: imageUrl, path: imagePath } = await uploadResponse.json();
-      console.log(`✅ [DESIGN_ENTRY_DIALOG] Upload successful in ${uploadTime}ms:`, {
-        imageUrl: imageUrl.substring(0, 50) + '...',
-        imagePath
-      });
       
       // Track image upload event
       AnalyticsService.trackImageUpload(user?.id || null, {
@@ -172,7 +123,6 @@ export function DesignEntryDialog({
       const generatedName = 'Design Entry';
 
       // Save entry to database WITHOUT advice first (quick save)
-      console.log('💾 [DESIGN_ENTRY_DIALOG] Saving entry to database (without advice)...');
       const dbSaveStartTime = Date.now();
       
       const entryUrl = `/api/entries?user_id=${user.id}`;
@@ -195,24 +145,14 @@ export function DesignEntryDialog({
       
       if (!entryResponse.ok) {
         const errorData = await entryResponse.text();
-        console.error(`💥 [DESIGN_ENTRY_DIALOG] Database save failed after ${dbSaveTime}ms:`, {
-          status: entryResponse.status,
-          statusText: entryResponse.statusText,
-          error: errorData
-        });
         throw new Error(`Failed to save entry: ${entryResponse.status} ${entryResponse.statusText} - ${errorData}`);
       }
-      
-      console.log(`✅ [DESIGN_ENTRY_DIALOG] Database save successful in ${dbSaveTime}ms`);
       
       const newEntry = await entryResponse.json();
       newEntry.design_versions = [];
       
       // Immediately show the entry to the user
       onEntryCreated(newEntry);
-      
-      const uploadProcessTime = Date.now() - uploadStartTime;
-      console.log(`⚡ [DESIGN_ENTRY_DIALOG] Quick upload process finished in ${uploadProcessTime}ms`);
       
       // Reset form and close dialog
       setNewImage(null);
@@ -221,13 +161,9 @@ export function DesignEntryDialog({
       onClose();
 
       // Start background advice generation (fire and forget)
-      console.log('🧠 [DESIGN_ENTRY_DIALOG] Starting background AI analysis...');
       generateAdviceInBackground(newEntry.id, imageUrl, '', inquiries, globalSettings, user.id);
       
     } catch (error) {
-      const totalProcessTime = Date.now() - uploadStartTime;
-      console.error(`💥 [DESIGN_ENTRY_DIALOG] Upload process failed after ${totalProcessTime}ms:`, error);
-      
       const errorMessage = error instanceof Error 
         ? error.message 
         : 'Failed to upload and save design entry';
@@ -255,10 +191,6 @@ export function DesignEntryDialog({
       const { advice } = await generateAdvice(imageUrl, context, inquiries, globalSettings);
       
       const analysisTime = Date.now() - analysisStartTime;
-      console.log(`✅ [BACKGROUND] Analysis completed in ${analysisTime}ms:`, {
-        entryId,
-        adviceLength: advice.length
-      });
       
       // Track design analysis completion
       AnalyticsService.trackDesignAnalysis(userId, {
@@ -279,19 +211,10 @@ export function DesignEntryDialog({
       });
       
       if (!updateResponse.ok) {
-        const errorData = await updateResponse.text();
-        console.error(`💥 [BACKGROUND] Failed to update entry with advice:`, {
-          entryId,
-          status: updateResponse.status,
-          error: errorData
-        });
         return;
       }
       
-      console.log(`✅ [BACKGROUND] Entry updated with advice successfully:`, { entryId });
-      
     } catch (error) {
-      console.error(`💥 [BACKGROUND] Background advice generation failed for entry ${entryId}:`, error);
       // Don't show error to user since this is background - they already have the entry
     }
   };

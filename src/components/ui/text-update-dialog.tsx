@@ -112,7 +112,6 @@ export function TextUpdateDialog({
       onClose();
       
     } catch (error) {
-      console.error(editingTextUpdate ? 'Failed to update text update:' : 'Failed to create text update:', error);
       setError(error instanceof Error ? error.message : (editingTextUpdate ? 'Failed to update text update' : 'Failed to create text update'));
     } finally {
       setIsSubmitting(false);

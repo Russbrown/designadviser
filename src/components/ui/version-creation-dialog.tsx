@@ -80,7 +80,6 @@ const generateVersionAdvice = async (
       miniAdvice: data.miniAdvice || null
     };
   } catch (error) {
-    console.error('Error generating version advice:', error);
     throw error;
   }
 };
@@ -114,16 +113,7 @@ export function VersionCreationDialog({
     const uploadStartTime = Date.now();
 
     try {
-      console.log('🚀 [VERSION_CREATION] Starting quick version creation process:', {
-        fileName: newImage.name,
-        fileSize: newImage.size,
-        fileType: newImage.type,
-        entryId: entry.id,
-        hasNotes: !!notes
-      });
-
       // First upload the image to Supabase storage
-      console.log('📤 [VERSION_CREATION] Starting file upload to Supabase...');
       const formData = new FormData();
       formData.append('file', newImage);
       
@@ -136,18 +126,12 @@ export function VersionCreationDialog({
       
       if (!uploadResponse.ok) {
         const errorData = await uploadResponse.json().catch(() => ({ error: 'Unknown error' }));
-        console.error(`💥 [VERSION_CREATION] Upload failed after ${uploadTime}ms:`, errorData);
         throw new Error(`Failed to upload image: ${uploadResponse.status} ${errorData.error || uploadResponse.statusText}`);
       }
       
       const { url: imageUrl, path: imagePath } = await uploadResponse.json();
-      console.log(`✅ [VERSION_CREATION] Upload successful in ${uploadTime}ms:`, {
-        imageUrl: imageUrl.substring(0, 50) + '...',
-        imagePath
-      });
 
       // Save version to database WITHOUT advice first (quick save)
-      console.log('💾 [VERSION_CREATION] Saving version to database (without advice)...');
       const dbSaveStartTime = Date.now();
       
       const versionResponse = await fetch(`/api/entries/${entry.id}/versions`, {
@@ -167,15 +151,8 @@ export function VersionCreationDialog({
       
       if (!versionResponse.ok) {
         const errorData = await versionResponse.text();
-        console.error(`💥 [VERSION_CREATION] Database save failed after ${dbSaveTime}ms:`, {
-          status: versionResponse.status,
-          statusText: versionResponse.statusText,
-          error: errorData
-        });
         throw new Error(`Failed to save version: ${versionResponse.status} ${versionResponse.statusText} - ${errorData}`);
       }
-      
-      console.log(`✅ [VERSION_CREATION] Database save successful in ${dbSaveTime}ms`);
       
       const newVersion = await versionResponse.json();
       
@@ -192,9 +169,6 @@ export function VersionCreationDialog({
       // Immediately show the version to the user
       onVersionCreated(entry.id, newVersion);
       
-      const uploadProcessTime = Date.now() - uploadStartTime;
-      console.log(`⚡ [VERSION_CREATION] Quick version creation process finished in ${uploadProcessTime}ms`);
-      
       // Reset form and close dialog
       setNewImage(null);
       setNotes('');
@@ -202,13 +176,9 @@ export function VersionCreationDialog({
       onClose();
 
       // Start background advice generation (fire and forget)
-      console.log('🧠 [VERSION_CREATION] Starting background AI version analysis...');
       generateVersionAdviceInBackground(newVersion.id, entry.id, imageUrl, notes, globalSettings, user?.id || null);
       
     } catch (error) {
-      const totalProcessTime = Date.now() - uploadStartTime;
-      console.error(`💥 [VERSION_CREATION] Version creation process failed after ${totalProcessTime}ms:`, error);
-      
       const errorMessage = error instanceof Error 
         ? error.message 
         : 'Failed to upload and save version';
@@ -241,7 +211,6 @@ export function VersionCreationDialog({
       const previousAdvice = latestVersion ? latestVersion.advice : entry.advice;
       
       if (!previousImageUrl) {
-        console.error('💥 [VERSION_BACKGROUND] Previous design image not found');
         return;
       }
       
@@ -259,11 +228,6 @@ export function VersionCreationDialog({
       );
       
       const analysisTime = Date.now() - analysisStartTime;
-      console.log(`✅ [VERSION_BACKGROUND] Version analysis completed in ${analysisTime}ms:`, {
-        versionId,
-        entryId,
-        adviceLength: advice.length
-      });
 
       // Update the version with advice via PATCH API
       const updateResponse = await fetch(`/api/entries/${entryId}/versions/${versionId}`, {
@@ -277,20 +241,10 @@ export function VersionCreationDialog({
       });
       
       if (!updateResponse.ok) {
-        const errorData = await updateResponse.text();
-        console.error(`💥 [VERSION_BACKGROUND] Failed to update version with advice:`, {
-          versionId,
-          entryId,
-          status: updateResponse.status,
-          error: errorData
-        });
         return;
       }
       
-      console.log(`✅ [VERSION_BACKGROUND] Version updated with advice successfully:`, { versionId, entryId });
-      
     } catch (error) {
-      console.error(`💥 [VERSION_BACKGROUND] Background version advice generation failed for version ${versionId}:`, error);
       // Don't show error to user since this is background - they already have the version
     }
   };
