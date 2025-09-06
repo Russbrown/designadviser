@@ -55,14 +55,22 @@ export function DesignViewer({ entry, onBack, onNewVersion, onDelete, onNameUpda
     }))
   });
 
-  // Poll for advice updates if current advice is empty
+  const currentVersion = allVersions[currentVersionIndex];
+
+  // Poll for advice updates if current version advice is empty
   const pollForAdviceUpdate = useCallback(async () => {
-    if (currentEntry.advice && currentEntry.advice.trim() !== '') {
+    if (!currentVersion) {
+      return; // No current version available
+    }
+    
+    const currentVersionHasAdvice = currentVersion.advice && currentVersion.advice.trim() !== '';
+    
+    if (currentVersionHasAdvice) {
       setIsLoadingAdvice(false);
-      return; // Already have advice
+      return; // Already have advice for current version
     }
 
-    console.log('🔄 [ADVICE_POLL] Polling for advice updates for entry:', currentEntry.id);
+    console.log('🔄 [ADVICE_POLL] Polling for advice updates for entry:', currentEntry.id, 'version:', currentVersion.version_number);
     
     try {
       const response = await fetch(`/api/entries/${currentEntry.id}`);
@@ -73,25 +81,50 @@ export function DesignViewer({ entry, onBack, onNewVersion, onDelete, onNameUpda
       
       const updatedEntry = await response.json();
       
-      if (updatedEntry && updatedEntry.advice && updatedEntry.advice.trim() !== '') {
-        console.log('✅ [ADVICE_POLL] Received updated advice:', {
-          entryId: updatedEntry.id,
-          adviceLength: updatedEntry.advice.length
-        });
+      // Check if the current version now has advice
+      if (updatedEntry) {
+        let hasNewAdvice = false;
         
-        setCurrentEntry(updatedEntry);
-        setIsLoadingAdvice(false);
+        if (currentVersion.isOriginal) {
+          // For original entry (version 1)
+          if (updatedEntry.advice && updatedEntry.advice.trim() !== '') {
+            hasNewAdvice = true;
+          }
+        } else {
+          // For design versions (version 2+)
+          const updatedVersion = updatedEntry.design_versions?.find((v: any) => v.version_number === currentVersion.version_number);
+          if (updatedVersion && updatedVersion.advice && updatedVersion.advice.trim() !== '') {
+            hasNewAdvice = true;
+          }
+        }
+        
+        if (hasNewAdvice) {
+          console.log('✅ [ADVICE_POLL] Received updated advice for version:', {
+            entryId: updatedEntry.id,
+            versionNumber: currentVersion.version_number,
+            isOriginal: currentVersion.isOriginal
+          });
+          
+          setCurrentEntry(updatedEntry);
+          setIsLoadingAdvice(false);
+        }
       }
     } catch (error) {
       console.error('💥 [ADVICE_POLL] Error polling for advice:', error);
     }
-  }, [currentEntry.id, currentEntry.advice]);
+  }, [currentEntry.id, currentVersion?.advice, currentVersion?.version_number, currentVersion?.isOriginal]);
 
-  // Set up polling when entry has no advice
+  // Set up polling when current version has no advice
   useEffect(() => {
-    if (!currentEntry.advice || currentEntry.advice.trim() === '') {
+    if (!currentVersion) {
+      return; // No current version available
+    }
+    
+    const currentVersionHasAdvice = currentVersion.advice && currentVersion.advice.trim() !== '';
+    
+    if (!currentVersionHasAdvice) {
       setIsLoadingAdvice(true);
-      console.log('🔄 [ADVICE_POLL] Starting polling for advice...');
+      console.log('🔄 [ADVICE_POLL] Starting polling for advice for version:', currentVersion.version_number);
       
       // Poll immediately
       pollForAdviceUpdate();
@@ -103,7 +136,7 @@ export function DesignViewer({ entry, onBack, onNewVersion, onDelete, onNameUpda
       const timeoutId = setTimeout(() => {
         clearInterval(pollInterval);
         setIsLoadingAdvice(false);
-        console.log('⏰ [ADVICE_POLL] Polling timeout reached');
+        console.log('⏰ [ADVICE_POLL] Polling timeout reached for version:', currentVersion.version_number);
       }, 120000);
       
       return () => {
@@ -113,7 +146,7 @@ export function DesignViewer({ entry, onBack, onNewVersion, onDelete, onNameUpda
     } else {
       setIsLoadingAdvice(false);
     }
-  }, [currentEntry.advice, pollForAdviceUpdate]);
+  }, [currentVersion?.advice, currentVersion?.version_number, pollForAdviceUpdate]);
 
   // Update currentEntry when prop changes
   useEffect(() => {
@@ -133,8 +166,6 @@ export function DesignViewer({ entry, onBack, onNewVersion, onDelete, onNameUpda
     setPreviousVersionCount(currentVersionCount);
   }, [allVersions.length, previousVersionCount]);
 
-  const currentVersion = allVersions[currentVersionIndex];
-  
   const formatDate = (dateString: string) => {
     return new Intl.DateTimeFormat('en-US', {
       month: 'short',
@@ -302,7 +333,7 @@ export function DesignViewer({ entry, onBack, onNewVersion, onDelete, onNameUpda
                 </defs>
               </svg>
             </div>
-            <div className="font-medium leading-[0] text-[#23282a] text-[12px] whitespace-nowrap">
+            <div className="font-medium leading-[0] text-[#23282a] text-[14px] whitespace-nowrap">
               New version
             </div>
           </div>
@@ -367,27 +398,31 @@ export function DesignViewer({ entry, onBack, onNewVersion, onDelete, onNameUpda
         )}
 
         {/* Design Image */}
-        <img 
-          src={currentVersion.image_url || ''} 
-          alt={`Design version ${currentVersion.version_number}`}
-          className="max-w-full max-h-[350px] h-auto rounded-lg shadow-md object-contain mx-auto block"
-        />
-        
-        {/* GPT-5 Advice Section */}
-        <div className="pt-4">
-          {currentVersion.advice ? (
-            <MarkdownRenderer content={currentVersion.advice} />
-          ) : isLoadingAdvice ? (
-            <div className="flex items-center gap-2 text-muted-foreground">
-              <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-gray-900"></div>
-              <p className="italic">Generating design advice...</p>
+        {currentVersion && (
+          <>
+            <img 
+              src={currentVersion.image_url || ''} 
+              alt={`Design version ${currentVersion.version_number}`}
+              className="max-w-full max-h-[350px] h-auto rounded-lg shadow-md object-contain mx-auto block"
+            />
+            
+            {/* GPT-5 Advice Section */}
+            <div className="pt-4">
+              {currentVersion.advice ? (
+                <MarkdownRenderer content={currentVersion.advice} />
+              ) : isLoadingAdvice ? (
+                <div className="flex items-center gap-2 text-muted-foreground">
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-gray-900"></div>
+                  <p className="italic">Generating design advice...</p>
+                </div>
+              ) : (
+                <p className="text-muted-foreground italic">
+                  No GPT-5 design advice generated for this version yet.
+                </p>
+              )}
             </div>
-          ) : (
-            <p className="text-muted-foreground italic">
-              No GPT-5 design advice generated for this version yet.
-            </p>
-          )}
-        </div>
+          </>
+        )}
       </div>
 
 

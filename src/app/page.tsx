@@ -35,6 +35,7 @@ export default function Home() {
   const [versionDialogOpen, setVersionDialogOpen] = useState(false);
   const [versionTargetEntry, setVersionTargetEntry] = useState<DesignEntry | null>(null);
   const [textUpdateDialogOpen, setTextUpdateDialogOpen] = useState(false);
+  const [editingTextUpdate, setEditingTextUpdate] = useState<TextUpdate | null>(null);
   const [designEntryDialogOpen, setDesignEntryDialogOpen] = useState(false);
 
   // Track pageview on mount
@@ -173,6 +174,14 @@ export default function Home() {
     setTextUpdates(prev => [newTextUpdate, ...prev]);
   }, []);
 
+  const handleTextUpdateUpdated = useCallback((updatedTextUpdate: TextUpdate) => {
+    setTextUpdates(prev => 
+      prev.map(update => 
+        update.id === updatedTextUpdate.id ? updatedTextUpdate : update
+      )
+    );
+  }, []);
+
   const handleDesignEntryCreated = useCallback((newEntry: DesignEntry) => {
     setEntries(prev => [newEntry, ...prev]);
     // Navigate to the newly created entry
@@ -185,6 +194,11 @@ export default function Home() {
     }
     // Text updates don't have individual views, they're just displayed in timeline
   }, [handleEntrySelect]);
+
+  const handleTextUpdateSelect = useCallback((textUpdate: TextUpdate) => {
+    setEditingTextUpdate(textUpdate);
+    setTextUpdateDialogOpen(true);
+  }, []);
 
   const handleDeleteEntry = useCallback(async (entryId: string) => {
     try {
@@ -257,8 +271,8 @@ export default function Home() {
           isVisible={isAnalyzing || isVersionAnalyzing}
           title={isVersionAnalyzing ? "Creating new version..." : "Analyzing your design..."}
           description={isVersionAnalyzing 
-            ? "Our AI is analyzing your updated design and generating fresh insights for this version."
-            : "Our AI is reviewing your design and preparing personalized feedback. This usually takes 10-20 seconds."
+            ? "Uploading your design and creating the new version. AI feedback will generate automatically after."
+            : "Uploading your design and creating the entry. AI feedback will generate automatically after."
           }
         />
       </div>
@@ -328,7 +342,7 @@ export default function Home() {
               </svg>
             </div>
           </div>
-          <div className="font-medium leading-[0] shrink-0 text-[#23282a] text-[12px] whitespace-nowrap">
+          <div className="font-medium leading-[0] shrink-0 text-[#23282a] text-[14px] whitespace-nowrap">
             Design Advice
           </div>
         </div>
@@ -357,7 +371,7 @@ export default function Home() {
               <path d="M12.0735 3.05276L12.6915 2.43484C13.7153 1.41104 15.3752 1.41104 16.399 2.43484C17.4228 3.45865 17.4228 5.11856 16.399 6.14236L15.7811 6.76028M12.0735 3.05276C12.0735 3.05276 12.1508 4.36584 13.3094 5.52444C14.468 6.68304 15.7811 6.76028 15.7811 6.76028M12.0735 3.05276L6.39271 8.73359C6.00794 9.11837 5.81555 9.31075 5.65009 9.52288C5.45492 9.77311 5.28759 10.0439 5.15106 10.3303C5.03532 10.5732 4.94928 10.8313 4.7772 11.3475L4.04803 13.535M15.7811 6.76028L12.9406 9.6007M10.1002 12.4411C9.71546 12.8259 9.52307 13.0183 9.31094 13.1837C9.06071 13.3789 8.78996 13.5462 8.50348 13.6828C8.26063 13.7985 8.00251 13.8845 7.48628 14.0566L5.29878 14.7858M5.29878 14.7858L4.76406 14.964C4.51002 15.0487 4.22993 14.9826 4.04058 14.7932C3.85123 14.6039 3.78511 14.3238 3.8698 14.0698L4.04803 13.535M5.29878 14.7858L4.04803 13.535" stroke="#393F41" strokeWidth="1.5" strokeLinecap="round"/>
             </svg>
           </div>
-          <div className="font-medium leading-[0] shrink-0 text-[#23282a] text-[12px] whitespace-nowrap">
+          <div className="font-medium leading-[0] shrink-0 text-[#23282a] text-[14px] whitespace-nowrap">
             Project Update
           </div>
         </div>
@@ -388,6 +402,7 @@ export default function Home() {
             onEntrySelect={handleEntrySelect}
             onNewVersion={handleNewVersion}
             onDeleteEntry={handleDeleteEntry}
+            onTextUpdateSelect={handleTextUpdateSelect}
           />
         )}
       </div>
@@ -409,8 +424,8 @@ export default function Home() {
         isVisible={isAnalyzing || isVersionAnalyzing}
         title={isVersionAnalyzing ? "Creating new version..." : "Analyzing your design..."}
         description={isVersionAnalyzing 
-          ? "Our AI is analyzing your updated design and generating fresh insights for this version."
-          : "Our AI is reviewing your design and preparing personalized feedback. This usually takes 10-20 seconds."
+          ? "Uploading your design and creating the new version. AI feedback will generate automatically after."
+          : "Uploading your design and creating the entry. AI feedback will generate automatically after."
         }
       />
 
@@ -426,8 +441,13 @@ export default function Home() {
       {/* Text Update Dialog */}
       <TextUpdateDialog
         isOpen={textUpdateDialogOpen}
-        onClose={() => setTextUpdateDialogOpen(false)}
+        onClose={() => {
+          setTextUpdateDialogOpen(false);
+          setEditingTextUpdate(null);
+        }}
+        editingTextUpdate={editingTextUpdate}
         onTextUpdateCreated={handleTextUpdateCreated}
+        onTextUpdateUpdated={handleTextUpdateUpdated}
       />
 
       {/* Settings Modal */}

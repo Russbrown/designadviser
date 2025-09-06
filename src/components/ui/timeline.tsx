@@ -9,9 +9,10 @@ interface TimelineProps {
   onEntrySelect: (entry: DesignEntry) => void;
   onNewVersion: (entryId: string) => void;
   onDeleteEntry: (entryId: string) => void;
+  onTextUpdateSelect?: (textUpdate: TextUpdate) => void;
 }
 
-export function Timeline({ timelineItems, onEntrySelect, onNewVersion, onDeleteEntry }: TimelineProps) {
+export function Timeline({ timelineItems, onEntrySelect, onNewVersion, onDeleteEntry, onTextUpdateSelect }: TimelineProps) {
   const formatDate = (dateString: string) => {
     return new Intl.DateTimeFormat('en-US', {
       month: 'short',
@@ -36,7 +37,7 @@ export function Timeline({ timelineItems, onEntrySelect, onNewVersion, onDeleteE
 
   return (
     <div className="w-full">
-      <div className="space-y-4">
+      <div className="space-y-3">
           {timelineItems.map((item, index) => {
             if (isDesignEntry(item)) {
               // Render design entry
@@ -49,7 +50,7 @@ export function Timeline({ timelineItems, onEntrySelect, onNewVersion, onDeleteE
                   <div className="flex gap-4 items-start justify-start p-3 relative w-full">
                     {/* Design Image */}
                     <div 
-                      className="bg-center bg-cover bg-no-repeat h-[34px] shrink-0 w-[49px] rounded-md"
+                      className="bg-center bg-cover bg-no-repeat h-[42px] shrink-0 w-[100px] rounded-md"
                       style={{ 
                         backgroundImage: `url('${item.image_url || ''}')`,
                         backgroundColor: '#e2e8f0'
@@ -140,6 +141,7 @@ export function Timeline({ timelineItems, onEntrySelect, onNewVersion, onDeleteE
                 <TextUpdateCard
                   key={item.id}
                   textUpdate={item}
+                  onClick={() => onTextUpdateSelect?.(item)}
                 />
               );
             }

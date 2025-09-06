@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Input } from '@/components/ui/input';
@@ -21,7 +21,21 @@ import { Eye, Edit3 } from 'lucide-react';
 interface TextUpdateDialogProps {
   isOpen: boolean;
   onClose: () => void;
+  editingTextUpdate?: {
+    id: string;
+    created_at: string;
+    title: string | null;
+    content: string;
+    user_id: string | null;
+  } | null;
   onTextUpdateCreated: (textUpdate: {
+    id: string;
+    created_at: string;
+    title: string | null;
+    content: string;
+    user_id: string | null;
+  }) => void;
+  onTextUpdateUpdated?: (textUpdate: {
     id: string;
     created_at: string;
     title: string | null;
@@ -34,12 +48,14 @@ interface TextUpdateDialogProps {
 export function TextUpdateDialog({
   isOpen,
   onClose,
+  editingTextUpdate,
   onTextUpdateCreated,
+  onTextUpdateUpdated,
   onLoadingChange
 }: TextUpdateDialogProps) {
   const { user } = useAuth();
-  const [title, setTitle] = useState('');
-  const [content, setContent] = useState('');
+  const [title, setTitle] = useState(editingTextUpdate?.title || '');
+  const [content, setContent] = useState(editingTextUpdate?.content || '');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<'write' | 'preview'>('write');
@@ -62,8 +78,13 @@ export function TextUpdateDialog({
     onLoadingChange?.(true);
 
     try {
-      const response = await fetch(`/api/text-updates?user_id=${user.id}`, {
-        method: 'POST',
+      const isEditing = !!editingTextUpdate;
+      const url = isEditing 
+        ? `/api/text-updates/${editingTextUpdate.id}?user_id=${user.id}`
+        : `/api/text-updates?user_id=${user.id}`;
+      
+      const response = await fetch(url, {
+        method: isEditing ? 'PUT' : 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
@@ -75,19 +96,24 @@ export function TextUpdateDialog({
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({ error: 'Unknown error' }));
-        throw new Error(errorData.error || 'Failed to create text update');
+        throw new Error(errorData.error || (isEditing ? 'Failed to update text update' : 'Failed to create text update'));
       }
 
-      const newTextUpdate = await response.json();
+      const updatedTextUpdate = await response.json();
       
-      onTextUpdateCreated(newTextUpdate);
+      if (isEditing && onTextUpdateUpdated) {
+        onTextUpdateUpdated(updatedTextUpdate);
+      } else {
+        onTextUpdateCreated(updatedTextUpdate);
+      }
+      
       setTitle('');
       setContent('');
       onClose();
       
     } catch (error) {
-      console.error('Failed to create text update:', error);
-      setError(error instanceof Error ? error.message : 'Failed to create text update');
+      console.error(editingTextUpdate ? 'Failed to update text update:' : 'Failed to create text update:', error);
+      setError(error instanceof Error ? error.message : (editingTextUpdate ? 'Failed to update text update' : 'Failed to create text update'));
     } finally {
       setIsSubmitting(false);
       onLoadingChange?.(false);
@@ -104,13 +130,26 @@ export function TextUpdateDialog({
     }
   };
 
+  // Reset form when editing text update changes
+  React.useEffect(() => {
+    if (editingTextUpdate) {
+      setTitle(editingTextUpdate.title || '');
+      setContent(editingTextUpdate.content || '');
+    } else {
+      setTitle('');
+      setContent('');
+    }
+    setError(null);
+    setActiveTab('write');
+  }, [editingTextUpdate]);
+
   return (
     <Dialog open={isOpen} onOpenChange={handleClose}>
       <DialogContent className="max-w-4xl max-h-[80vh] overflow-hidden flex flex-col">
         <DialogHeader>
-          <DialogTitle>Add Text Update</DialogTitle>
+          <DialogTitle>{editingTextUpdate ? 'Edit Text Update' : 'Add Text Update'}</DialogTitle>
           <DialogDescription>
-            Add a text update to your timeline. You can use Markdown formatting for rich text.
+            {editingTextUpdate ? 'Edit your text update. You can use Markdown formatting for rich text.' : 'Add a text update to your timeline. You can use Markdown formatting for rich text.'}
           </DialogDescription>
         </DialogHeader>
 
@@ -187,7 +226,7 @@ export function TextUpdateDialog({
               type="submit"
               disabled={isSubmitting || !content.trim()}
             >
-              {isSubmitting ? 'Publishing...' : 'Publish Update'}
+              {isSubmitting ? (editingTextUpdate ? 'Updating...' : 'Publishing...') : (editingTextUpdate ? 'Update' : 'Publish Update')}
             </Button>
           </DialogFooter>
         </form>

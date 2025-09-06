@@ -111,8 +111,19 @@ export function VersionCreationDialog({
     setError(null);
     onLoadingChange?.(true);
 
+    const uploadStartTime = Date.now();
+
     try {
+      console.log('🚀 [VERSION_CREATION] Starting quick version creation process:', {
+        fileName: newImage.name,
+        fileSize: newImage.size,
+        fileType: newImage.type,
+        entryId: entry.id,
+        hasNotes: !!notes
+      });
+
       // First upload the image to Supabase storage
+      console.log('📤 [VERSION_CREATION] Starting file upload to Supabase...');
       const formData = new FormData();
       formData.append('file', newImage);
       
@@ -121,38 +132,24 @@ export function VersionCreationDialog({
         body: formData,
       });
       
+      const uploadTime = Date.now() - uploadStartTime;
+      
       if (!uploadResponse.ok) {
-        throw new Error('Failed to upload image');
+        const errorData = await uploadResponse.json().catch(() => ({ error: 'Unknown error' }));
+        console.error(`💥 [VERSION_CREATION] Upload failed after ${uploadTime}ms:`, errorData);
+        throw new Error(`Failed to upload image: ${uploadResponse.status} ${errorData.error || uploadResponse.statusText}`);
       }
       
       const { url: imageUrl, path: imagePath } = await uploadResponse.json();
-      
-      // Generate advice comparing the new version with the previous design
-      // Get the most recent design (either the latest version or the original entry)
-      const latestVersion = entry.design_versions && entry.design_versions.length > 0 
-        ? entry.design_versions.sort((a, b) => b.version_number - a.version_number)[0]
-        : null;
-      
-      const previousImageUrl = latestVersion ? latestVersion.image_url : entry.image_url;
-      const previousAdvice = latestVersion ? latestVersion.advice : entry.advice;
-      
-      if (!previousImageUrl) {
-        throw new Error('Previous design image not found');
-      }
-      
-      const { advice } = await generateVersionAdvice(
-        imageUrl,
-        previousImageUrl,
-        previousAdvice || '',
-        '', // previousSeniorCritique no longer used
-        '', // previousGPT5Advice no longer used
-        entry.context || '',
-        entry.inquiries || '',
-        notes,
-        globalSettings
-      );
+      console.log(`✅ [VERSION_CREATION] Upload successful in ${uploadTime}ms:`, {
+        imageUrl: imageUrl.substring(0, 50) + '...',
+        imagePath
+      });
 
-      // Save version to database
+      // Save version to database WITHOUT advice first (quick save)
+      console.log('💾 [VERSION_CREATION] Saving version to database (without advice)...');
+      const dbSaveStartTime = Date.now();
+      
       const versionResponse = await fetch(`/api/entries/${entry.id}/versions`, {
         method: 'POST',
         headers: {
@@ -161,14 +158,24 @@ export function VersionCreationDialog({
         body: JSON.stringify({
           image_url: imageUrl,
           image_path: imagePath,
-          advice,
+          advice: '', // Empty advice initially
           notes: notes || null,
         }),
       });
       
+      const dbSaveTime = Date.now() - dbSaveStartTime;
+      
       if (!versionResponse.ok) {
-        throw new Error('Failed to save version');
+        const errorData = await versionResponse.text();
+        console.error(`💥 [VERSION_CREATION] Database save failed after ${dbSaveTime}ms:`, {
+          status: versionResponse.status,
+          statusText: versionResponse.statusText,
+          error: errorData
+        });
+        throw new Error(`Failed to save version: ${versionResponse.status} ${versionResponse.statusText} - ${errorData}`);
       }
+      
+      console.log(`✅ [VERSION_CREATION] Database save successful in ${dbSaveTime}ms`);
       
       const newVersion = await versionResponse.json();
       
@@ -182,19 +189,109 @@ export function VersionCreationDialog({
         fileType: newImage.type,
       });
       
+      // Immediately show the version to the user
       onVersionCreated(entry.id, newVersion);
+      
+      const uploadProcessTime = Date.now() - uploadStartTime;
+      console.log(`⚡ [VERSION_CREATION] Quick version creation process finished in ${uploadProcessTime}ms`);
       
       // Reset form and close dialog
       setNewImage(null);
       setNotes('');
       setError(null);
       onClose();
+
+      // Start background advice generation (fire and forget)
+      console.log('🧠 [VERSION_CREATION] Starting background AI version analysis...');
+      generateVersionAdviceInBackground(newVersion.id, entry.id, imageUrl, notes, globalSettings, user?.id || null);
+      
     } catch (error) {
-      console.error('Error creating version:', error);
-      setError(error instanceof Error ? error.message : 'Failed to create version');
+      const totalProcessTime = Date.now() - uploadStartTime;
+      console.error(`💥 [VERSION_CREATION] Version creation process failed after ${totalProcessTime}ms:`, error);
+      
+      const errorMessage = error instanceof Error 
+        ? error.message 
+        : 'Failed to upload and save version';
+      
+      setError(errorMessage);
     } finally {
       setIsAnalyzing(false);
       onLoadingChange?.(false);
+    }
+  };
+
+  // Background function to generate version advice after version is created
+  const generateVersionAdviceInBackground = async (
+    versionId: string,
+    entryId: string,
+    newImageUrl: string,
+    versionNotes: string,
+    globalSettings: string,
+    userId: string | null
+  ) => {
+    try {
+      const analysisStartTime = Date.now();
+      
+      // Get the most recent design (either the latest version or the original entry)
+      const latestVersion = entry.design_versions && entry.design_versions.length > 0 
+        ? entry.design_versions.sort((a, b) => b.version_number - a.version_number)[0]
+        : null;
+      
+      const previousImageUrl = latestVersion ? latestVersion.image_url : entry.image_url;
+      const previousAdvice = latestVersion ? latestVersion.advice : entry.advice;
+      
+      if (!previousImageUrl) {
+        console.error('💥 [VERSION_BACKGROUND] Previous design image not found');
+        return;
+      }
+      
+      // Generate version comparison advice
+      const { advice } = await generateVersionAdvice(
+        newImageUrl,
+        previousImageUrl,
+        previousAdvice || '',
+        '', // previousSeniorCritique no longer used
+        '', // previousGPT5Advice no longer used
+        entry.context || '',
+        entry.inquiries || '',
+        versionNotes,
+        globalSettings
+      );
+      
+      const analysisTime = Date.now() - analysisStartTime;
+      console.log(`✅ [VERSION_BACKGROUND] Version analysis completed in ${analysisTime}ms:`, {
+        versionId,
+        entryId,
+        adviceLength: advice.length
+      });
+
+      // Update the version with advice via PATCH API
+      const updateResponse = await fetch(`/api/entries/${entryId}/versions/${versionId}`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          advice,
+        }),
+      });
+      
+      if (!updateResponse.ok) {
+        const errorData = await updateResponse.text();
+        console.error(`💥 [VERSION_BACKGROUND] Failed to update version with advice:`, {
+          versionId,
+          entryId,
+          status: updateResponse.status,
+          error: errorData
+        });
+        return;
+      }
+      
+      console.log(`✅ [VERSION_BACKGROUND] Version updated with advice successfully:`, { versionId, entryId });
+      
+    } catch (error) {
+      console.error(`💥 [VERSION_BACKGROUND] Background version advice generation failed for version ${versionId}:`, error);
+      // Don't show error to user since this is background - they already have the version
     }
   };
 
@@ -213,7 +310,7 @@ export function VersionCreationDialog({
         <DialogHeader>
           <DialogTitle>Add New Version</DialogTitle>
           <DialogDescription>
-            Upload a new iteration of this design to track its evolution and get updated AI feedback.
+            Upload a new iteration of this design to track its evolution. AI feedback will be generated automatically.
           </DialogDescription>
         </DialogHeader>
 
@@ -279,7 +376,7 @@ export function VersionCreationDialog({
             onClick={handleCreateVersion}
             disabled={!newImage || isAnalyzing}
           >
-            {isAnalyzing ? 'Creating Version...' : 'Create Version & Get AI Feedback'}
+{isAnalyzing ? 'Creating Version...' : 'Create Version'}
           </Button>
         </DialogFooter>
       </DialogContent>
