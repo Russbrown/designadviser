@@ -3,8 +3,9 @@ import { supabaseAdmin } from '@/lib/supabase';
 
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
+  const { id } = await params;
   const startTime = Date.now();
   console.log('💾 [TEXT_UPDATE_UPDATE] Starting text update update operation');
   
@@ -13,7 +14,7 @@ export async function PUT(
     const { searchParams } = new URL(request.url);
     const userId = searchParams.get('user_id');
     
-    console.log('🔐 [TEXT_UPDATE_UPDATE] Authentication check:', { userId, textUpdateId: params.id });
+    console.log('🔐 [TEXT_UPDATE_UPDATE] Authentication check:', { userId, textUpdateId: id });
     
     if (!userId || userId === 'null') {
       console.log('❌ [TEXT_UPDATE_UPDATE] Authentication failed - no user ID');
@@ -30,7 +31,7 @@ export async function PUT(
       title: title || 'No title',
       contentLength: content?.length || 0,
       userId,
-      textUpdateId: params.id
+      textUpdateId: id
     });
 
     if (!content || typeof content !== 'string' || content.trim().length === 0) {
@@ -54,7 +55,7 @@ export async function PUT(
     const { data, error } = await supabaseAdmin
       .from('text_updates')
       .update(updateData)
-      .eq('id', params.id)
+      .eq('id', id)
       .eq('user_id', userId)
       .select()
       .single();
