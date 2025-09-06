@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { DesignEntry } from '@/types';
+import { DesignEntry, DesignVersion } from '@/types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -77,7 +77,7 @@ export function DesignViewer({ entry, onBack, onNewVersion, onDelete, onNameUpda
           }
         } else {
           // For design versions (version 2+)
-          const updatedVersion = updatedEntry.design_versions?.find((v: any) => v.version_number === currentVersion.version_number);
+          const updatedVersion = updatedEntry.design_versions?.find((v: DesignVersion) => v.version_number === currentVersion.version_number);
           if (updatedVersion && updatedVersion.advice && updatedVersion.advice.trim() !== '') {
             hasNewAdvice = true;
           }
