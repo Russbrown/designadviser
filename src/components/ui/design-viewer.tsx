@@ -37,7 +37,6 @@ export function DesignViewer({ entry, onBack, onNewVersion, onDelete, onNameUpda
       image_url: currentEntry.image_url,
       advice: currentEntry.advice,
       version_number: 1,
-      isOriginal: true,
     },
     // Filter out any versions with version_number 1 (shouldn't exist but just in case)
     ...(currentEntry.design_versions || []).filter(v => v.version_number !== 1)
@@ -70,7 +69,7 @@ export function DesignViewer({ entry, onBack, onNewVersion, onDelete, onNameUpda
       if (updatedEntry) {
         let hasNewAdvice = false;
         
-        if (currentVersion.isOriginal) {
+        if (currentVersion.version_number === 1) {
           // For original entry (version 1)
           if (updatedEntry.advice && updatedEntry.advice.trim() !== '') {
             hasNewAdvice = true;
@@ -91,7 +90,7 @@ export function DesignViewer({ entry, onBack, onNewVersion, onDelete, onNameUpda
     } catch (error) {
       // Error polling for advice - will retry
     }
-  }, [currentEntry.id, currentVersion?.advice, currentVersion?.version_number, currentVersion?.isOriginal]);
+  }, [currentEntry.id, currentVersion?.advice, currentVersion?.version_number]);
 
   // Set up polling when current version has no advice
   useEffect(() => {
