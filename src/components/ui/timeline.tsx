@@ -44,7 +44,13 @@ export function Timeline({ timelineItems, onEntrySelect, onNewVersion, onDeleteE
               return (
                 <div
                   key={item.id}
-                  className="bg-[#f9fcfd] relative rounded-[8px] border border-[#e9eff1] cursor-pointer hover:bg-[#f4f9fb] transition-colors"
+                  className="relative rounded-[8px] border border-[#e9eff1] cursor-pointer"
+                  style={{
+                    backgroundImage: 'url(/NOISE.png)',
+                    backgroundSize: 'cover',
+                    backgroundPosition: 'center',
+                    backgroundRepeat: 'no-repeat'
+                  }}
                   onClick={() => onEntrySelect(item)}
                 >
                   <div className="flex gap-4 items-start justify-start p-3 relative w-full">

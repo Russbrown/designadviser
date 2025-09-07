@@ -21,11 +21,17 @@ export function TextUpdateCard({ textUpdate, onClick }: TextUpdateCardProps) {
 
   return (
     <div 
-      className="bg-[#f9fcfd] relative rounded-[8px] border border-[#e9eff1] cursor-pointer hover:bg-[#f4f9fb] transition-colors"
+      className="relative rounded-[8px] border border-[#e9eff1] cursor-pointer"
+      style={{
+        backgroundImage: 'url(/NOISE.png)',
+        backgroundSize: 'cover',
+        backgroundPosition: 'center',
+        backgroundRepeat: 'no-repeat'
+      }}
       onClick={onClick}
     >
       <div className="flex gap-4 items-start justify-start p-3 relative w-full">
-        {/* Text Icon */}
+        {/* Text Icon
         <div className="flex gap-2.5 items-center justify-center relative shrink-0 w-[49px]">
           <div className="overflow-hidden relative rounded-[5px] shrink-0 size-7">
             <svg width="29" height="28" viewBox="0 0 29 28" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -35,7 +41,7 @@ export function TextUpdateCard({ textUpdate, onClick }: TextUpdateCardProps) {
               <path d="M4 16.333V11.6663C4 7.26657 4 5.06668 5.36684 3.69984C6.73367 2.33301 8.93356 2.33301 13.3333 2.33301H15.6667C20.0664 2.33301 22.2663 2.33301 23.6332 3.69984C24.3952 4.46189 24.7324 5.48288 24.8816 6.99967M25 11.6663V16.333C25 20.7328 25 22.9327 23.6332 24.2995C22.2663 25.6663 20.0664 25.6663 15.6667 25.6663H13.3333C8.93356 25.6663 6.73367 25.6663 5.36684 24.2995C4.60479 23.5375 4.2676 22.5165 4.11841 20.9997" stroke="#8F9699" strokeWidth="1.5" strokeLinecap="round"/>
             </svg>
           </div>
-        </div>
+        </div> */}
         
         {/* Card Content */}
         <div className="flex-1 flex items-start justify-between min-w-0">

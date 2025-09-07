@@ -289,68 +289,98 @@ export default function Home() {
       <div className="flex w-full gap-4 items-start justify-start">
         {/* Design Advice Tab */}
         <div 
-          className="flex-1 box-border flex gap-2 h-[50px] items-center justify-center p-[6px] rounded-[6px] hover:border-primary/50 transition-colors cursor-pointer"
+          className="flex-1 box-border flex gap-2 h-[50px] items-center justify-center p-[1px] rounded-[8px] cursor-pointer"
           onClick={() => setDesignEntryDialogOpen(true)}
           style={{ 
             opacity: !user ? 0.5 : 1, 
             pointerEvents: !user ? 'none' : 'auto',
-            background: 'linear-gradient(180deg, #F6F9FB 0%, #F5F8FD 100%)',
-            border: '1px solid #E9EFF1',
+            background: 'linear-gradient(-83deg, rgba(30, 186, 238, 0.2) 0%, rgba(72, 25, 173, 0.2) 100%)',
+            borderRadius: '8px',
+            transition: 'background 200ms ease-in-out',
+          }}
+          onMouseEnter={(e) => {
+            if (user) {
+              e.currentTarget.style.background = 'linear-gradient(-83deg, rgba(30, 186, 238, 0.4) 0%, rgba(72, 25, 173, 0.4) 100%)';
+            }
+          }}
+          onMouseLeave={(e) => {
+            if (user) {
+              e.currentTarget.style.background = 'linear-gradient(-83deg, rgba(30, 186, 238, 0.2) 0%, rgba(72, 25, 173, 0.2) 100%)';
+            }
           }}
         >
-          <div className="flex gap-2.5 items-center justify-center rounded-[6px] shrink-0 size-5">
-            <div className="relative shrink-0 size-[18px]">
-              <svg 
-                width="20" 
-                height="20" 
-                viewBox="0 0 20 20" 
-                fill="none" 
-                xmlns="http://www.w3.org/2000/svg"
-                className="size-full"
-              >
-                <g clipPath="url(#clip0_70_1405)">
-                  <path d="M12.25 10L10 10M10 10L7.75 10M10 10L10 7.75M10 10L10 12.25" stroke="#393F41" strokeWidth="1.5" strokeLinecap="round"/>
-                  <path d="M17.5 10C17.5 13.5355 17.5 15.3033 16.4017 16.4017C15.3033 17.5 13.5355 17.5 10 17.5C6.46447 17.5 4.6967 17.5 3.59835 16.4017C2.5 15.3033 2.5 13.5355 2.5 10C2.5 6.46447 2.5 4.6967 3.59835 3.59835C4.6967 2.5 6.46447 2.5 10 2.5C13.5355 2.5 15.3033 2.5 16.4017 3.59835C17.132 4.32865 17.3767 5.35491 17.4587 7" stroke="#393F41" strokeWidth="1.5" strokeLinecap="round"/>
-                </g>
-                <defs>
-                  <clipPath id="clip0_70_1405">
-                    <rect width="18" height="18" fill="white" transform="translate(1 1)"/>
-                  </clipPath>
-                </defs>
-              </svg>
-            </div>
-          </div>
-          <div className="font-medium leading-[0] shrink-0 text-[#23282a] text-[14px] whitespace-nowrap">
-            Design Advice
+          <div 
+            className="flex-1 flex gap-2 h-[48px] items-center justify-center rounded-[7px]"
+            style={{
+              background: 'linear-gradient(180deg, #F6F9FB 0%, #F5F8FD 100%)',
+            }}
+          >
+            <svg 
+              width="20" 
+              height="20" 
+              viewBox="0 0 20 20" 
+              fill="none" 
+              xmlns="http://www.w3.org/2000/svg"
+              className="shrink-0 size-[18px]"
+            >
+              <g clipPath="url(#clip0_70_1405)">
+                <path d="M12.25 10L10 10M10 10L7.75 10M10 10L10 7.75M10 10L10 12.25" stroke="#393F41" strokeWidth="1" strokeLinecap="round"/>
+                <path d="M17.5 10C17.5 13.5355 17.5 15.3033 16.4017 16.4017C15.3033 17.5 13.5355 17.5 10 17.5C6.46447 17.5 4.6967 17.5 3.59835 16.4017C2.5 15.3033 2.5 13.5355 2.5 10C2.5 6.46447 2.5 4.6967 3.59835 3.59835C4.6967 2.5 6.46447 2.5 10 2.5C13.5355 2.5 15.3033 2.5 16.4017 3.59835C17.132 4.32865 17.3767 5.35491 17.4587 7" stroke="#393F41" strokeWidth="1" strokeLinecap="round"/>
+              </g>
+              <defs>
+                <clipPath id="clip0_70_1405">
+                  <rect width="18" height="18" fill="white" transform="translate(1 1)"/>
+                </clipPath>
+              </defs>
+            </svg>
+            <span className="font-medium leading-[0] text-[#23282a] text-[14px] whitespace-nowrap">
+              Design Advice
+            </span>
           </div>
         </div>
 
         {/* Project Update Tab */}
         <div 
-          className="flex-1 box-border flex gap-2 h-[50px] items-center justify-center p-[6px] rounded-[6px] hover:border-primary/50 transition-colors cursor-pointer"
+          className="flex-1 box-border flex gap-2 h-[50px] items-center justify-center p-[1px] rounded-[8px] cursor-pointer"
           onClick={() => setTextUpdateDialogOpen(true)}
           style={{ 
             opacity: !user ? 0.5 : 1, 
             pointerEvents: !user ? 'none' : 'auto',
-            background: 'linear-gradient(180deg, #F6F9FB 0%, #F5F8FD 100%)',
-            border: '1px solid #E9EFF1',
+            background: 'linear-gradient(-83deg, rgba(30, 186, 238, 0.2) 0%, rgba(72, 25, 173, 0.2) 100%)',
+            borderRadius: '8px',
+            transition: 'background 200ms ease-in-out',
+          }}
+          onMouseEnter={(e) => {
+            if (user) {
+              e.currentTarget.style.background = 'linear-gradient(-83deg, rgba(30, 186, 238, 0.4) 0%, rgba(72, 25, 173, 0.4) 100%)';
+            }
+          }}
+          onMouseLeave={(e) => {
+            if (user) {
+              e.currentTarget.style.background = 'linear-gradient(-83deg, rgba(30, 186, 238, 0.2) 0%, rgba(72, 25, 173, 0.2) 100%)';
+            }
           }}
         >
-          <div className="relative shrink-0 size-5">
+          <div 
+            className="flex-1 flex gap-2 h-[48px] items-center justify-center rounded-[7px]"
+            style={{
+              background: 'linear-gradient(180deg, #F6F9FB 0%, #F5F8FD 100%)',
+            }}
+          >
             <svg 
               width="21" 
               height="20" 
               viewBox="0 0 21 20" 
               fill="none" 
               xmlns="http://www.w3.org/2000/svg"
-              className="size-full"
+              className="shrink-0 size-5"
             >
               <path d="M3.8335 18.333H7.16683M17.1668 18.333H10.5002" stroke="#393F41" strokeWidth="1.5" strokeLinecap="round"/>
               <path d="M12.0735 3.05276L12.6915 2.43484C13.7153 1.41104 15.3752 1.41104 16.399 2.43484C17.4228 3.45865 17.4228 5.11856 16.399 6.14236L15.7811 6.76028M12.0735 3.05276C12.0735 3.05276 12.1508 4.36584 13.3094 5.52444C14.468 6.68304 15.7811 6.76028 15.7811 6.76028M12.0735 3.05276L6.39271 8.73359C6.00794 9.11837 5.81555 9.31075 5.65009 9.52288C5.45492 9.77311 5.28759 10.0439 5.15106 10.3303C5.03532 10.5732 4.94928 10.8313 4.7772 11.3475L4.04803 13.535M15.7811 6.76028L12.9406 9.6007M10.1002 12.4411C9.71546 12.8259 9.52307 13.0183 9.31094 13.1837C9.06071 13.3789 8.78996 13.5462 8.50348 13.6828C8.26063 13.7985 8.00251 13.8845 7.48628 14.0566L5.29878 14.7858M5.29878 14.7858L4.76406 14.964C4.51002 15.0487 4.22993 14.9826 4.04058 14.7932C3.85123 14.6039 3.78511 14.3238 3.8698 14.0698L4.04803 13.535M5.29878 14.7858L4.04803 13.535" stroke="#393F41" strokeWidth="1.5" strokeLinecap="round"/>
             </svg>
-          </div>
-          <div className="font-medium leading-[0] shrink-0 text-[#23282a] text-[14px] whitespace-nowrap">
-            Project Update
+            <span className="font-medium leading-[0] text-[#23282a] text-[14px] whitespace-nowrap">
+              Project Update
+            </span>
           </div>
         </div>
       </div>
